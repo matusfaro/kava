@@ -1,7 +1,8 @@
 import { Mesh, Vector3 } from '@babylonjs/core';
 import { useEffect, useRef } from 'react';
-import { useAfterRender } from 'react-babylonjs';
+import { useAfterRender, useScene } from 'react-babylonjs';
 import { io, Socket } from 'socket.io-client';
+import { ActionData, CharacterController } from '../../CharacterController';
 import { useAppDispatch } from '../hooks';
 import { disconnected, update } from '../store/friends';
 import { EventClientUpdateLocation, EventServerUpdateClientDisconnected, EventServerUpdateClientLocation, ServerUpdateClientDisconnected, ServerUpdateClientLocation } from './api';
@@ -11,25 +12,38 @@ const NetFpxMaxOffsetInMs = Math.ceil(1000 / NetFpsMax);
 
 const Network = (props: {
   player: Mesh;
+  controller: CharacterController;
 }) => {
+  const scene = useScene();
   const dispatch = useAppDispatch();
   const nextUpdateAfterRef = useRef(0);
   const socketRef = useRef<Socket>();
   const lastPositionRef = useRef(Vector3.Zero());
   const lastRotationRef = useRef(Vector3.Zero());
+  const lastAnimationRef = useRef<ActionData>();
   useAfterRender(() => {
     if (!socketRef.current?.connected) return;
+
+    const activeAnimation = props.controller.getAnim() || undefined;
+    const hasNewAnimation = !!activeAnimation && lastAnimationRef.current !== activeAnimation;
+    lastAnimationRef.current = activeAnimation;
+
     const now = Date.now();
-    if (nextUpdateAfterRef.current > now) return;
-    const changed = !props.player.position.equals(lastPositionRef.current)
-      || !props.player.rotation.equals(lastRotationRef.current);
-    if (!changed) return;
+    if (!hasNewAnimation) {
+      if (nextUpdateAfterRef.current > now) return;
+    }
+
+    const positionChanged = !props.player.position.equals(lastPositionRef.current);
+    const rotationChanged = !props.player.rotation.equals(lastRotationRef.current);
+    if (!positionChanged && !rotationChanged && !hasNewAnimation) return;
+
     socketRef.current.volatile.emit(EventClientUpdateLocation, {
-      position: { x: props.player.position.x, y: props.player.position.y, z: props.player.position.z },
-      rotation: { x: props.player.rotation.x, y: props.player.rotation.y, z: props.player.rotation.z },
+      position: positionChanged ? { x: props.player.position.x, y: props.player.position.y, z: props.player.position.z } : undefined,
+      rotation: rotationChanged ? { x: props.player.rotation.x, y: props.player.rotation.y, z: props.player.rotation.z } : undefined,
+      animation: hasNewAnimation ? { name: activeAnimation.name, speed: activeAnimation.rate, loop: activeAnimation.loop } : undefined,
     });
-    lastPositionRef.current = props.player.position.clone();
-    lastRotationRef.current = props.player.rotation.clone();
+    if (positionChanged) lastPositionRef.current = props.player.position.clone();
+    if (rotationChanged) lastRotationRef.current = props.player.rotation.clone();
     nextUpdateAfterRef.current = now + NetFpxMaxOffsetInMs;
   });
   useEffect(() => {

@@ -67,6 +67,8 @@ export const Controller = (props: {
 
     controller.start();
 
+    props.controllerReady(controller);
+
     return () => controller.stop();
   }, []);
 

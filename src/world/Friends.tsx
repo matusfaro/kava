@@ -1,11 +1,10 @@
-import { Vector3 } from '@babylonjs/core';
-import React from 'react';
-import { Model } from 'react-babylonjs';
+import { Mesh, Vector3 } from '@babylonjs/core';
+import React, { useCallback, useRef, useState } from 'react';
 import { useAppSelector } from './hooks';
+import { Player } from './Player';
 
-
-
-export const Friends = () => {
+export const Friends = (props: {
+}) => {
   const friends = useAppSelector(state => state.friends.friends);
   return (
     <>
@@ -19,15 +18,52 @@ export const Friends = () => {
 export const Friend = (props: {
   friendId: string;
 }) => {
+  const [player, setPlayer] = useState<Mesh>();
+  const playerCallback = useCallback(setPlayer, [setPlayer]);
+
+  // const friend = useMemo(() => {
+  //   const f = props.player.clone(`friend-${props.friendId}`);
+  //   f.skeleton = props.player.skeleton!.clone(`skeleton-${props.friendId}`, `skeleton-${props.friendId}`);
+  //   return f;
+  // }, []);
+  const lastAnimNameRef = useRef<string>();
   const position = useAppSelector(state => state.friends.friends[props.friendId]?.position);
   const rotation = useAppSelector(state => state.friends.friends[props.friendId]?.rotation);
+  const animation = useAppSelector(state => state.friends.friends[props.friendId]?.animation);
   if (!position || !rotation) return null;
+
+  if (!!player?.skeleton) {
+    if (animation && lastAnimNameRef.current !== animation.name) {
+      player.skeleton?.beginAnimation(animation.name, animation.loop, animation.speed);
+    }
+    lastAnimNameRef.current = animation?.name;
+  }
+
   return (
-    <Model
-      name={props.friendId}
-      rootUrl='/assets/player/' sceneFilename='Vincent.babylon'
-      position={new Vector3(position.x, position.y, position.z)}
-      rotation={new Vector3(rotation.x, rotation.y, rotation.z)}
-    />
+    <>
+      <Player playerReady={playerCallback} />
+      {!!player && (
+        <mesh
+          fromInstance={player}
+          name={props.friendId}
+          id={props.friendId}
+          position={new Vector3(position.x, position.y, position.z)}
+          rotation={new Vector3(rotation.x, rotation.y, rotation.z)}
+        />
+      )}
+      {/* // <Model
+    //   onCreated={mesh => friendRef.current = mesh as Mesh}
+    //   name={props.friendId}
+    //   rootUrl='/assets/player/' sceneFilename='Vincent.babylon'
+    //   position={new Vector3(position.x, position.y, position.z)}
+    //   rotation={new Vector3(rotation.x, rotation.y, rotation.z)}
+    //   onModelLoaded={model => {
+    //     const friend = model.meshes![0];
+    //     const skeleton = model.skeletons![0];
+    //     friend.skeleton = skeleton;
+    //     skeleton.enableBlending(0.1);
+    //   }}
+    // /> */}
+    </>
   );
 }

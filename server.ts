@@ -19,8 +19,7 @@ const newConnection = (socket: Socket) => {
 	socket.on(EventClientUpdateLocation, (data: ClientUpdateLocation) => {
 		const broadcastResponse: ServerUpdateClientLocation = {
 			id: socket.id,
-			position: data.position,
-			rotation: data.rotation,
+			...data,
 		};
 		socket.broadcast.volatile.emit(EventServerUpdateClientLocation, broadcastResponse);
 	});

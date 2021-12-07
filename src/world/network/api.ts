@@ -1,17 +1,17 @@
 
 export interface Vector3Serializable { x: number; y: number; z: number };
+export interface RunningAnimation { name: string; speed: number; loop: boolean };
 
 export const EventClientUpdateLocation = 'client-update-location';
 export interface ClientUpdateLocation {
-  position: Vector3Serializable;
-  rotation: Vector3Serializable;
+  position?: Vector3Serializable;
+  rotation?: Vector3Serializable;
+  animation?: RunningAnimation;
 }
 
 export const EventServerUpdateClientLocation = 'server-update-client-location';
-export interface ServerUpdateClientLocation {
+export interface ServerUpdateClientLocation extends ClientUpdateLocation {
   id: string;
-  position: Vector3Serializable;
-  rotation: Vector3Serializable;
 }
 
 export const EventServerUpdateClientDisconnected = 'server-update-client-disconnected';

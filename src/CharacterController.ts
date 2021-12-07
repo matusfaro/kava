@@ -641,6 +641,10 @@ export class CharacterController {
     this._stopAnim = false;
   }
 
+  public getAnim(): ActionData | null {
+    return this._prevAnim;
+  }
+
   private _prevAnim: ActionData = null;
   private _avStartPos: Vector3 = Vector3.Zero();
   private _grounded: boolean = false;

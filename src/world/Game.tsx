@@ -1,4 +1,4 @@
-import { ArcRotateCamera, Mesh, Vector3 } from '@babylonjs/core';
+import { ArcRotateCamera, Color3, Mesh, Vector3 } from '@babylonjs/core';
 import '@babylonjs/loaders/glTF';
 import React, { Suspense, useCallback, useState } from 'react';
 import { Engine, Scene } from 'react-babylonjs';
@@ -27,14 +27,20 @@ const Game = () => {
       <Scene>
         <Suspense fallback={false}>
           <Provider store={store}>
-            <hemisphericLight name='light1' intensity={0.7} direction={Vector3.Up()} />
+            <hemisphericLight name='lightHemi' intensity={1} direction={Vector3.Up()} />
+            <pointLight name='lightPoint' position={new Vector3(80, 100, 100)} specular={Color3.Black()} diffuse={new Color3(255 / 255, 240 / 255, 221 / 255)} />
+            {/* <lensRenderingPipeline name='lensRenderingPipeline' parameters={{
+              edge_blur: 1.0,
+              chromatic_aberration: 1.0,
+              distortion: 1.0,
+            }} /> */}
             <Player playerReady={playerCallback} />
             <Camera player={player} cameraReady={cameraCallback} />
             <City groundReady={groundCallback} />
-            {!!player && (<Network player={player} />)}
             {!!player && !!camera && (
               <Controller player={player} camera={camera} controllerReady={controllerCallback} />
             )}
+            {!!player && !!controller && (<Network player={player} controller={controller} />)}
             <Friends />
           </Provider>
         </Suspense>
