@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import { useScene } from 'react-babylonjs';
 import Subscription from '../util/subscriptionUtil';
 import { Face, FaceCaptureDimensions } from './FaceCapture';
+import { FaceMeshIndices } from './FaceCaptureConst';
 
 const PlayerFaceBoneIndex = 9;
 const updateFace = (scene: Scene, faceRef: React.MutableRefObject<{ face: Mesh, texture: DynamicTexture } | undefined>, player: Mesh, skeleton: Skeleton, face: Face) => {
@@ -24,12 +25,14 @@ const updateFace = (scene: Scene, faceRef: React.MutableRefObject<{ face: Mesh, 
       img.src = face.texture.img;
     }
 
-    faceRef.current.face.bakeTransformIntoVertices(Matrix.FromArray(face.mesh.transform, 0));
+    if (face.mesh.transform) {
+      faceRef.current.face.bakeTransformIntoVertices(Matrix.FromArray(face.mesh.transform, 0));
+    }
 
     var vertexData = new VertexData();
     vertexData.positions = face.mesh.positions;
     vertexData.normals = face.mesh.normals;
-    vertexData.indices = Array.from(Array(face.mesh.positions.length / 3).keys());
+    vertexData.indices = FaceMeshIndices;
     if (face.texture) vertexData.uvs = face.texture.uvs;
     vertexData.applyToMesh(faceRef.current.face, true);
 
@@ -44,7 +47,9 @@ const updateFace = (scene: Scene, faceRef: React.MutableRefObject<{ face: Mesh, 
       img.src = face.texture.img;
     }
 
-    faceRef.current.face.bakeTransformIntoVertices(Matrix.FromArray(face.mesh.transform, 0));
+    if (face.mesh.transform) {
+      faceRef.current.face.bakeTransformIntoVertices(Matrix.FromArray(face.mesh.transform, 0));
+    }
 
     faceRef.current.face.updateVerticesData(VertexBuffer.PositionKind, face.mesh.positions);
     faceRef.current.face.updateVerticesData(VertexBuffer.NormalKind, face.mesh.normals);
