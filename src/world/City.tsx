@@ -8,7 +8,7 @@ export const City = (props: {
 }) => {
   return (
     <>
-      <Model name='city' rootUrl='/assets/city/' sceneFilename='scene.glb' scaleToDimension={100} position={new Vector3(0, -2, 0)} />
+      {false && (<Model name='city' rootUrl='/assets/city/' sceneFilename='scene.glb' scaleToDimension={100} position={new Vector3(0, -2, 0)} />)}
       <groundFromHeightMap
         name='ground'
         ref={props.groundReady}
