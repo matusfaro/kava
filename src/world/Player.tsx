@@ -2,9 +2,12 @@ import { Mesh, SceneLoader, StandardMaterial, Vector3 } from '@babylonjs/core';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { useEffect } from 'react';
 import { useScene } from 'react-babylonjs';
+import Subscription from '../util/subscriptionUtil';
+import { Face } from './FaceCapture';
 
 export const Player = (props: {
   playerReady: (player: Mesh) => void;
+  faceSubscription?: Subscription<Face>;
 }) => {
   const scene = useScene();
   useEffect(() => {

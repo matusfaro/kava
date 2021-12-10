@@ -1271,8 +1271,8 @@ export class CharacterController {
       canvas.addEventListener("keyup", this._handleKeyUp, false);
       canvas.addEventListener("keydown", this._handleKeyDown, false);
     } else {
-      canvas.removeEventListener("keyup", this._handleKeyUp, false);
-      canvas.removeEventListener("keydown", this._handleKeyDown, false);
+      canvas?.removeEventListener?.("keyup", this._handleKeyUp, false);
+      canvas?.removeEventListener?.("keydown", this._handleKeyDown, false);
     }
   }
 

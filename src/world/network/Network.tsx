@@ -3,6 +3,8 @@ import { useEffect, useRef } from 'react';
 import { useAfterRender, useScene } from 'react-babylonjs';
 import { io, Socket } from 'socket.io-client';
 import { ActionData, CharacterController } from '../../CharacterController';
+import Subscription from '../../util/subscriptionUtil';
+import { Face } from '../FaceCapture';
 import { useAppDispatch } from '../hooks';
 import { disconnected, update } from '../store/friends';
 import { EventClientUpdateLocation, EventServerUpdateClientDisconnected, EventServerUpdateClientLocation, ServerUpdateClientDisconnected, ServerUpdateClientLocation } from './api';
@@ -13,6 +15,7 @@ const NetFpxMaxOffsetInMs = Math.ceil(1000 / NetFpsMax);
 const Network = (props: {
   player: Mesh;
   controller: CharacterController;
+  faceSubscription: Subscription<Face>;
 }) => {
   const scene = useScene();
   const dispatch = useAppDispatch();
@@ -22,7 +25,7 @@ const Network = (props: {
   const lastRotationRef = useRef(Vector3.Zero());
   const lastAnimationRef = useRef<ActionData>();
   useAfterRender(() => {
-    if (!socketRef.current?.connected) return;
+    if (socketRef.current?.disconnected) return;
 
     const activeAnimation = props.controller.getAnim() || undefined;
     const hasNewAnimation = !!activeAnimation && lastAnimationRef.current !== activeAnimation;
@@ -37,7 +40,7 @@ const Network = (props: {
     const rotationChanged = !props.player.rotation.equals(lastRotationRef.current);
     if (!positionChanged && !rotationChanged && !hasNewAnimation) return;
 
-    socketRef.current.volatile.emit(EventClientUpdateLocation, {
+    socketRef.current?.volatile.emit(EventClientUpdateLocation, {
       position: positionChanged ? { x: props.player.position.x, y: props.player.position.y, z: props.player.position.z } : undefined,
       rotation: rotationChanged ? { x: props.player.rotation.x, y: props.player.rotation.y, z: props.player.rotation.z } : undefined,
       animation: hasNewAnimation ? { name: activeAnimation.name, speed: activeAnimation.rate, loop: activeAnimation.loop } : undefined,
@@ -50,7 +53,7 @@ const Network = (props: {
     console.log('socketio: starting');
     localStorage.debug = '*'; // Debugging
 
-    const socket = io('http://localhost:8080', { reconnection: true });
+    const socket = io('http://Matus-Lappy.local:8080', { reconnection: true });
 
     socket.on('error', (er) => {
       console.log('socketio:', er);
@@ -72,12 +75,18 @@ const Network = (props: {
       dispatch(disconnected(data.id));
     });
 
+    const faceUnsubscribe = props.faceSubscription.subscribe(face => {
+      if (socket.disconnected) return;
+      socket.volatile.emit(EventClientUpdateLocation, face);
+    });
+
     socket.connect();
 
     socketRef.current = socket;
 
     return () => {
       console.log('socketio: disconnecting');
+      faceUnsubscribe();
       socket.disconnect();
     };
   }, []);
