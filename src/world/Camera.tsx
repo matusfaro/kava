@@ -37,7 +37,7 @@ export const Camera = (props: {
       keysUp={[]}
       keysDown={[]}
       lowerRadiusLimit={2}
-      upperRadiusLimit={100}
+      upperRadiusLimit={20}
       radius={cameraRef.current ? cameraRef.current.radius : 20}
     />
   );

@@ -1277,6 +1277,9 @@ export class CharacterController {
   }
 
   // control movement by commands rather than keyboard.
+  public moveFast(b: boolean) {
+    this._act._speedMod = b;
+  }
   public walk(b: boolean) {
     this._act._walk = b;
   }

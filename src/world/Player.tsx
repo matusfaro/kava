@@ -83,7 +83,7 @@ export const Player = (props: {
         sm.ambientColor = new Color3(1, 1, 1);
       }
 
-      player.position = new Vector3(0, 30, 0);
+      player.position = new Vector3(-8, 1, 25);
       player.checkCollisions = true;
       player.ellipsoid = new Vector3(0.5, 1, 0.5);
       player.ellipsoidOffset = new Vector3(0, 1, 0);

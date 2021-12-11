@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import './App.css';
 import Game from './world/Game';
 
 function App() {
@@ -8,7 +7,7 @@ function App() {
     <>
       <div style={{
         position: 'absolute',
-        zIndex: 1,
+        zIndex: 2,
         left: 30,
         top: 30,
       }}>
