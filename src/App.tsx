@@ -13,7 +13,11 @@ function App() {
       }}>
         <button onClick={() => setRunning(!running)}>{running ? 'stop' : 'start'}</button>
       </div>
-      {!!running && (<Game />)}
+      {!!running && (
+        <Game
+          enableVideo
+        />
+      )}
     </>
   );
 }

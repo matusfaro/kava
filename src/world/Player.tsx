@@ -2,7 +2,7 @@ import { Color3, DynamicTexture, Mesh, Scene, SceneLoader, Skeleton, SkeletonVie
 import { useEffect, useRef } from 'react';
 import { useScene } from 'react-babylonjs';
 import Subscription from '../util/subscriptionUtil';
-import { Body, Face, FaceCaptureDimensions } from './BodyCapture';
+import { Body, Face, FaceCaptureDimensions, Neck, Vector } from './BodyCapture';
 import { FaceMeshIndices } from './FaceCaptureConst';
 
 export const HeadBoneName = 'Head';
@@ -34,11 +34,11 @@ const updateFace = (scene: Scene, faceRef: React.MutableRefObject<{ face: Mesh, 
     if (face.texture) vertexData.uvs = face.texture.uvs;
     vertexData.applyToMesh(faceRef.current.face, true);
 
-    // faceRef.current.face.rotate(new Vector3(0, 1, 0), Math.PI);
-    faceRef.current.face.translate(new Vector3(0, 0.1, 0.12), 1);
-    faceRef.current.face.scaling = new Vector3(0.6, 0.6, 0.6);
+    faceRef.current.face.translate(new Vector3(0, 0.15, 0.11), 1);
+    faceRef.current.face.scaling = new Vector3(1, 0.6, 0.6);
     const headBone = skeleton.bones[skeleton.getBoneIndexByName(HeadBoneName)];
     faceRef.current.face.attachToBone(headBone, player);
+    headBone.scaling = new Vector3(3, 3, 3);
   } else {
     if (face.texture) {
       const img = new Image();
@@ -53,6 +53,23 @@ const updateFace = (scene: Scene, faceRef: React.MutableRefObject<{ face: Mesh, 
     if (face.texture) faceRef.current.face.updateVerticesData(VertexBuffer.UVKind, face.texture.uvs);
   }
 }
+
+export const NeckPositionBase: Vector = { x: 0, y: 0, z: 0 };
+export const NeckBoneName = 'Neck';
+const updateNeck = (scene: Scene, skeleton: Skeleton, neck: Neck) => {
+  const neckBone = skeleton.bones[skeleton.getBoneIndexByName(NeckBoneName)];
+  const headBone = skeleton.bones[skeleton.getBoneIndexByName(HeadBoneName)];
+  neckBone?.setPosition(new Vector3(
+    neck.position.x + NeckPositionBase.x,
+    neck.position.y + NeckPositionBase.y,
+    neck.position.z + NeckPositionBase.z,
+  ));
+  headBone?.setRotation(new Vector3(
+    neck.rotation.x,
+    neck.rotation.y,
+    neck.rotation.z,
+  ));
+};
 
 export const Player = (props: {
   playerReady: (player: Mesh) => void;
@@ -88,8 +105,12 @@ export const Player = (props: {
       player.ellipsoid = new Vector3(0.5, 1, 0.5);
       player.ellipsoidOffset = new Vector3(0, 1, 0);
 
-      const bodyUnsubscribe = props.bodySubscription?.subscribe(body =>
-        !!body.face && updateFace(scene!, faceModelRef, player, skeleton, body.face));
+      const bodyUnsubscribe = props.bodySubscription?.subscribe(body => {
+        if (!scene) return;
+        !!body.face && updateFace(scene, faceModelRef, player, skeleton, body.face);
+        !!body.neck && updateNeck(scene, skeleton, body.neck);
+      });
+
       const faceUnsubscribe = props.faceSubscription?.subscribe(face =>
         !!face && updateFace(scene!, faceModelRef, player, skeleton, face));
 

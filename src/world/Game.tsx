@@ -16,7 +16,9 @@ import Network from './network/Network';
 import { Player } from './Player';
 import { store } from './store/store';
 
-const Game = () => {
+const Game = (props: {
+  enableVideo?: boolean;
+}) => {
   const faceSubscription: Subscription<Body> = useMemo(() => new Subscription(), []);
 
   const [player, setPlayer] = useState<Mesh>();
@@ -32,7 +34,7 @@ const Game = () => {
 
   return (
     <>
-      <video autoPlay muted ref={videoCallback} style={{ display: 'none' }} />
+      {props.enableVideo && (<video autoPlay muted ref={videoCallback} style={{ display: 'none' }} />)}
       {!!controller && (<Joystick controller={controller} />)}
       <Engine antialias adaptToDeviceRatio canvasId='game'>
         <Scene>

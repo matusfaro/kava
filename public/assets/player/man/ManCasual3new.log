@@ -37,56 +37,52 @@ Exporter version: 2.93.4, Blender version: 3.0.0
 		processing begun of bone:  FingerThumb02.L, index:  22
 		processing begun of bone:  Neck, index:  23
 		processing begun of bone:  Head, index:  24
-		processing begun of bone:  Eyebrows.L, index:  25
-		processing begun of bone:  Eyebrows.L.001, index:  26
-		processing begun of bone:  Eyebrows.R, index:  27
-		processing begun of bone:  Eyebrows.R.001, index:  28
-		processing begun of bone:  Shoulder.R, index:  29
-		processing begun of bone:  UpperArm.R, index:  30
-		processing begun of bone:  LowerArm.R, index:  31
-		processing begun of bone:  Hand.R, index:  32
-		processing begun of bone:  FingerLittle.R, index:  33
-		processing begun of bone:  FingerLittle01.R, index:  34
-		processing begun of bone:  FingerLittle02.R, index:  35
-		processing begun of bone:  FingerRing.R, index:  36
-		processing begun of bone:  FingerRing01.R, index:  37
-		processing begun of bone:  FingerRing02.R, index:  38
-		processing begun of bone:  FingerMiddle.R, index:  39
-		processing begun of bone:  FingerMiddle01.R, index:  40
-		processing begun of bone:  FingerMiddle02.R, index:  41
-		processing begun of bone:  FingerIndex.R, index:  42
-		processing begun of bone:  FingerIndex01.R, index:  43
-		processing begun of bone:  FingerIndex02.R, index:  44
-		processing begun of bone:  FingerThumb.R, index:  45
-		processing begun of bone:  FingerThumb01.R, index:  46
-		processing begun of bone:  FingerThumb02.R, index:  47
-		processing begun of bone:  UpperLeg.L, index:  48
-		processing begun of bone:  LowerLeg.L, index:  49
-		processing begun of bone:  Foot.L, index:  50
-		processing begun of bone:  Toes.L, index:  51
-		processing begun of bone:  UpperLeg.R, index:  52
-		processing begun of bone:  LowerLeg.R, index:  53
-		processing begun of bone:  Foot.R, index:  54
-		processing begun of bone:  Toes.R, index:  55
+		processing begun of bone:  Shoulder.R, index:  25
+		processing begun of bone:  UpperArm.R, index:  26
+		processing begun of bone:  LowerArm.R, index:  27
+		processing begun of bone:  Hand.R, index:  28
+		processing begun of bone:  FingerLittle.R, index:  29
+		processing begun of bone:  FingerLittle01.R, index:  30
+		processing begun of bone:  FingerLittle02.R, index:  31
+		processing begun of bone:  FingerRing.R, index:  32
+		processing begun of bone:  FingerRing01.R, index:  33
+		processing begun of bone:  FingerRing02.R, index:  34
+		processing begun of bone:  FingerMiddle.R, index:  35
+		processing begun of bone:  FingerMiddle01.R, index:  36
+		processing begun of bone:  FingerMiddle02.R, index:  37
+		processing begun of bone:  FingerIndex.R, index:  38
+		processing begun of bone:  FingerIndex01.R, index:  39
+		processing begun of bone:  FingerIndex02.R, index:  40
+		processing begun of bone:  FingerThumb.R, index:  41
+		processing begun of bone:  FingerThumb01.R, index:  42
+		processing begun of bone:  FingerThumb02.R, index:  43
+		processing begun of bone:  UpperLeg.L, index:  44
+		processing begun of bone:  LowerLeg.L, index:  45
+		processing begun of bone:  Foot.L, index:  46
+		processing begun of bone:  Toes.L, index:  47
+		processing begun of bone:  UpperLeg.R, index:  48
+		processing begun of bone:  LowerLeg.R, index:  49
+		processing begun of bone:  Foot.R, index:  50
+		processing begun of bone:  Toes.R, index:  51
 	processing begun of camera (UniversalCamera):  Camera
 	processing begun of mesh:  ManCasual3
 		processing begun of material:  ManCasual3Material
 			processing texture ManCasual3Color
 				texture type:  diffuseTexture, mapped using: "UVMap"
 		Custom split normals with tangents being used
-		num positions      :  7700
-		num normals        :  7700
-		num tangents       :  30800
-		num uvs            :  15400
+		num positions      :  7573
+		num normals        :  7573
+		num tangents       :  30292
+		num uvs            :  15146
 		num uvs2           :  0
 		num colors         :  0
-		num triangles      :  2602
+		num triangles      :  2554
 		Skeleton stats:  
-			Total Influencers:  18385
-			Avg # of influencers per vertex:  2.3877
+			Total Influencers:  18131
+			Avg # of influencers per vertex:  2.3942
 			Highest # of influencers observed:  6, num vertices with this:  118
 			exported as 6 influencers
-			num skeletonWeights and skeletonIndices:  61600
+			num skeletonWeights and skeletonIndices:  60584
 	processing begun of light (DIRECTIONAL):  Light
 	processing begun of light (DIRECTIONAL):  Light.001
 	processing begun of light (DIRECTIONAL):  Light.002
@@ -94,4 +90,4 @@ Exporter version: 2.93.4, Blender version: 3.0.0
 	writing mesh:  ManCasual3
 ========= Writing of JSON file completed =========
 ========= end of processing =========
-elapsed time:  0 min, 1.0969 secs
+elapsed time:  0 min, 1.1213 secs

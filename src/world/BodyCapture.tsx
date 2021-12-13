@@ -1,17 +1,26 @@
 import { Mesh, VertexData } from '@babylonjs/core';
 import { Camera } from '@mediapipe/camera_utils';
 import { Holistic, Results } from '@mediapipe/holistic';
+import { Vector3 } from 'babylonjs';
 import { useEffect } from 'react';
 import Subscription from '../util/subscriptionUtil';
-import { FaceMeshIndices } from './FaceCaptureConst';
+import { ShoulderMeshIndices } from './BodyCaptureConst';
+import { FaceChin, FaceEyeLeft, FaceEyeRight, FaceMeshIndices } from './FaceCaptureConst';
 
 export const FaceCaptureDimensions = { width: 1280, height: 720 };
 
 export interface Body {
   face?: Face,
+  neck?: Neck,
   handLeft?: Hand,
   handRight?: Hand,
   pose?: Pose,
+}
+export interface Neck extends Orientation { };
+export interface Vector { x: number, y: number, z: number };
+export interface Orientation {
+  position: Vector;
+  rotation: Vector;
 }
 export interface Hand {
 }
@@ -28,16 +37,60 @@ export interface Face {
   },
 }
 
+const captureToNeck = (results: Results): Neck | undefined => {
+  const faceOriginLeft = results.faceLandmarks?.[FaceEyeLeft];
+  const faceOriginRight = results.faceLandmarks?.[FaceEyeRight];
+  const faceOriginBottom = results.faceLandmarks?.[FaceChin];
+  const shoulderOriginLeft = results.poseLandmarks?.[ShoulderMeshIndices[0]];
+  const shoulderOriginRight = results.poseLandmarks?.[ShoulderMeshIndices[1]];
+
+  if (!faceOriginLeft
+    || !faceOriginRight
+    || !faceOriginBottom
+    || !shoulderOriginLeft
+    || !shoulderOriginRight) return undefined;
+
+  const faceOrigin: Vector3 = new Vector3(
+    (faceOriginLeft.x + faceOriginRight.x) / 2,
+    (faceOriginLeft.y + faceOriginRight.y) / 2,
+    (faceOriginLeft.z + faceOriginRight.z) / 2,
+  );
+  const shoulderOrigin: Vector3 = new Vector3(
+    (shoulderOriginRight.x + shoulderOriginLeft.x) / 2,
+    (shoulderOriginRight.y + shoulderOriginLeft.y) / 2,
+    (shoulderOriginRight.z + shoulderOriginLeft.z) / 2,
+  );
+
+  const calcRotation = (
+    from: Vector,
+    to: Vector,
+    axisFrom: keyof Vector,
+    axisTo: keyof Vector,
+  ): number => Math.atan2(
+    to[axisTo] - from[axisTo],
+    to[axisFrom] - from[axisFrom],
+  );
+
+  const orientation: Orientation = {
+    position: {
+      x: (faceOrigin.x - shoulderOrigin.x),
+      y: (shoulderOrigin.y - faceOrigin.y),
+      z: (faceOrigin.z - shoulderOrigin.z),
+    },
+    rotation: {
+      x: calcRotation(faceOrigin, faceOriginBottom, 'y', 'z'),
+      y: calcRotation(faceOriginLeft, faceOriginRight, 'x', 'z'),
+      z: -calcRotation(faceOriginLeft, faceOriginRight, 'x', 'y'),
+    },
+  };
+
+  return orientation;
+}
+
 const captureToPose = (results: Results): Pose | undefined => {
 
   return undefined;
 }
-
-// TODO check if this is the lower part of the eye. If not, uncomment there:
-// const FaceOriginLeft = 386; // FACEMESH_RIGHT_EYE[3][1]
-// const FaceOriginRight = 159; // FACEMESH_LEFT_EYE[3][1]
-const FaceOriginLeft = 374; // FACEMESH_RIGHT_EYE[11][1]
-const FaceOriginRight = 145; // FACEMESH_LEFT_EYE[11][1]
 
 const captureToFace = (results: Results): Face | undefined => {
   if (!results.faceLandmarks) return undefined;
@@ -63,8 +116,8 @@ const captureToFace = (results: Results): Face | undefined => {
   //   snip snip...
   // }
 
-  const originLeft = results.faceLandmarks[FaceOriginLeft];
-  const originRight = results.faceLandmarks[FaceOriginRight];
+  const originLeft = results.faceLandmarks[FaceEyeLeft];
+  const originRight = results.faceLandmarks[FaceEyeRight];
   const origin = {
     x: (originLeft.x + originRight.x) / 2,
     y: (originLeft.y + originRight.y) / 2,
@@ -95,11 +148,13 @@ const captureToFace = (results: Results): Face | undefined => {
 }
 
 const captureToBody = (results: Results): Body | undefined => {
+
   const face = captureToFace(results);
+  const neck = captureToNeck(results);
   const pose = captureToPose(results);
 
-  if (face || pose) {
-    return { face, pose };
+  if (face || neck || pose) {
+    return { face, neck, pose };
   }
 
   return undefined;
