@@ -19,7 +19,6 @@ export const Joystick = (props: {
       follow: false,
     });
     const handlerJoystickAdded = (evtAdded: any, nipple: any) => {
-      console.log('DEBUG added', nipple);
       nipple.on('start move end dir plain dir:up plain:up dir:left plain:left dir:down ' +
         'plain:down dir:right plain:right', (evt: any) => {
           if (evt.target && evt.target.position) {

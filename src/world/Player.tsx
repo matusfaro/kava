@@ -1,15 +1,15 @@
-import { Color3, DynamicTexture, Matrix, Mesh, Scene, SceneLoader, Skeleton, SkeletonViewer, StandardMaterial, Vector3, VertexBuffer, VertexData } from '@babylonjs/core';
+import { Color3, DynamicTexture, Mesh, Scene, SceneLoader, Skeleton, SkeletonViewer, StandardMaterial, Vector3, VertexBuffer, VertexData } from '@babylonjs/core';
 import { useEffect, useRef } from 'react';
 import { useScene } from 'react-babylonjs';
 import Subscription from '../util/subscriptionUtil';
-import { Face, FaceCaptureDimensions } from './FaceCapture';
+import { Body, Face, FaceCaptureDimensions } from './BodyCapture';
 import { FaceMeshIndices } from './FaceCaptureConst';
 
-const PlayerFaceBoneIndex = 9;
+export const HeadBoneName = 'Head';
 const updateFace = (scene: Scene, faceRef: React.MutableRefObject<{ face: Mesh, texture: DynamicTexture } | undefined>, player: Mesh, skeleton: Skeleton, face: Face) => {
   if (!faceRef.current) {
     faceRef.current = {
-      face: new Mesh(`${player.name}-face`, scene),
+      face: new Mesh(`${player.name}-face`),
       texture: new DynamicTexture(`${player.name}-face`, FaceCaptureDimensions, scene, false),
     };
     const material = new StandardMaterial(`${player.name}-face`, scene);
@@ -25,10 +25,6 @@ const updateFace = (scene: Scene, faceRef: React.MutableRefObject<{ face: Mesh, 
       img.src = face.texture.img;
     }
 
-    if (face.mesh.transform) {
-      faceRef.current.face.bakeTransformIntoVertices(Matrix.FromArray(face.mesh.transform, 0));
-    }
-
     var vertexData = new VertexData();
     vertexData.positions = face.mesh.positions;
     vertexData.normals = face.mesh.normals;
@@ -36,7 +32,11 @@ const updateFace = (scene: Scene, faceRef: React.MutableRefObject<{ face: Mesh, 
     if (face.texture) vertexData.uvs = face.texture.uvs;
     vertexData.applyToMesh(faceRef.current.face, true);
 
-    faceRef.current.face.attachToBone(skeleton.bones[PlayerFaceBoneIndex], player);
+    const headBone = skeleton.bones[skeleton.getBoneIndexByName(HeadBoneName)];
+    faceRef.current.face.attachToBone(headBone, player);
+
+    faceRef.current.face.rotate(new Vector3(0, 1, 0), Math.PI);
+    faceRef.current.face.translate(new Vector3(0, 0.1, -0.2), 1);
   } else {
     if (face.texture) {
       const img = new Image();
@@ -46,11 +46,6 @@ const updateFace = (scene: Scene, faceRef: React.MutableRefObject<{ face: Mesh, 
       };
       img.src = face.texture.img;
     }
-
-    if (face.mesh.transform) {
-      faceRef.current.face.bakeTransformIntoVertices(Matrix.FromArray(face.mesh.transform, 0));
-    }
-
     faceRef.current.face.updateVerticesData(VertexBuffer.PositionKind, face.mesh.positions);
     faceRef.current.face.updateVerticesData(VertexBuffer.NormalKind, face.mesh.normals);
     if (face.texture) faceRef.current.face.updateVerticesData(VertexBuffer.UVKind, face.texture.uvs);
@@ -59,19 +54,20 @@ const updateFace = (scene: Scene, faceRef: React.MutableRefObject<{ face: Mesh, 
 
 export const Player = (props: {
   playerReady: (player: Mesh) => void;
-  faceSubscription?: Subscription<Face>;
+  bodySubscription?: Subscription<Body>;
   debugSkeleton?: boolean;
 }) => {
   const scene = useScene();
   const faceModelRef = useRef<{ face: Mesh, texture: DynamicTexture }>();
   useEffect(() => {
-    SceneLoader.ImportMesh("", "assets/player/", "Vincent.babylon", scene, (meshes, particleSystems, skeletons) => {
+    SceneLoader.ImportMesh("", "assets/player/man/", "ManCasual3new.babylon", scene, (meshes, particleSystems, skeletons) => {
       let player = meshes[0] as Mesh;
       let skeleton = skeletons[0];
       if (props.debugSkeleton) {
-        const skeletonViewer = new SkeletonViewer(skeleton, player, scene!);
+        const skeletonViewer = new SkeletonViewer(skeleton, player, scene!, false, 3, {
+          displayMode: SkeletonViewer.DISPLAY_SPHERE_AND_SPURS
+        });
         skeletonViewer.isEnabled = true;
-        skeletonViewer.color = Color3.Red();
       }
       player.skeleton = skeleton;
 
@@ -83,13 +79,14 @@ export const Player = (props: {
         sm.ambientColor = new Color3(1, 1, 1);
       }
 
+      player.scaling = new Vector3(0.75, 0.75, 0.75);
       player.position = new Vector3(-8, 1, 25);
       player.checkCollisions = true;
       player.ellipsoid = new Vector3(0.5, 1, 0.5);
       player.ellipsoidOffset = new Vector3(0, 1, 0);
 
-      const faceUnsubscribe = props.faceSubscription?.subscribe(faceData =>
-        updateFace(scene!, faceModelRef, player, skeleton, faceData));
+      const faceUnsubscribe = props.bodySubscription?.subscribe(body =>
+        !!body.face && updateFace(scene!, faceModelRef, player, skeleton, body.face));
 
       props.playerReady(player);
 

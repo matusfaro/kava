@@ -5,10 +5,10 @@ import { Engine, Scene } from 'react-babylonjs';
 import { Provider } from 'react-redux';
 import { CharacterController } from '../CharacterController';
 import Subscription from '../util/subscriptionUtil';
+import FaceCapture, { Body } from './BodyCapture';
 import { Camera } from './Camera';
 import { City } from './City';
 import { Controller } from './Controller';
-import FaceCapture, { Face } from './FaceCapture';
 import { Friends } from './Friends';
 import './game.css';
 import { Joystick } from './Joystick';
@@ -17,7 +17,7 @@ import { Player } from './Player';
 import { store } from './store/store';
 
 const Game = () => {
-  const faceSubscription: Subscription<Face> = useMemo(() => new Subscription(), []);
+  const faceSubscription: Subscription<Body> = useMemo(() => new Subscription(), []);
 
   const [player, setPlayer] = useState<Mesh>();
   const playerCallback = useCallback(setPlayer, [setPlayer]);
@@ -40,15 +40,15 @@ const Game = () => {
             <Provider store={store}>
               <hemisphericLight name='lightHemi' intensity={1} direction={Vector3.Up()} />
               <pointLight name='lightPoint' position={new Vector3(80, 100, 100)} specular={Color3.Black()} diffuse={new Color3(255 / 255, 240 / 255, 221 / 255)} />
-              <Player playerReady={playerCallback} faceSubscription={faceSubscription} />
+              <Player playerReady={playerCallback} bodySubscription={faceSubscription} />
               <Camera player={player} cameraReady={cameraCallback} />
               <City groundReady={groundCallback} />
               {/* <box name='ground' width={100} depth={100} height={1} checkCollisions /> */}
               {!!player && !!camera && (
                 <Controller player={player} camera={camera} controllerReady={controllerCallback} />
               )}
-              {!!player && !!controller && (<Network player={player} controller={controller} faceSubscription={faceSubscription} />)}
-              {!!player && !!video && (<FaceCapture player={player} videoElement={video} faceSubscription={faceSubscription} />)}
+              {!!player && !!controller && (<Network player={player} controller={controller} bodySubscription={faceSubscription} />)}
+              {!!player && !!video && (<FaceCapture player={player} videoElement={video} bodySubscription={faceSubscription} />)}
               <Friends />
             </Provider>
           </Suspense>

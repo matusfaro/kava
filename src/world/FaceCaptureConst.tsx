@@ -1,6 +1,6 @@
 
 // DO NOT DELETE, the below code generates FaceMeshIndices
-// import { FACEMESH_LEFT_EYE, FACEMESH_LIPS, FACEMESH_RIGHT_EYE, FACEMESH_TESSELATION } from '@mediapipe/face_mesh';
+// import { FACEMESH_LEFT_EYE, FACEMESH_LIPS, FACEMESH_RIGHT_EYE, FACEMESH_TESSELATION } from '@mediapipe/holistic';
 // const calc = (arr: number[][], lineStart: number, line2Start: number, count: number, reversed?: boolean): number[] => {
 //   const result: number[] = [];
 //   var point1 = arr[(reversed ? line2Start : lineStart)][1];

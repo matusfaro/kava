@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import { AbstractMesh, AnimationGroup, ArcRotateCamera, Matrix, Mesh, Node, PickingInfo, Ray, Scene, Skeleton, TargetedAnimation, TransformNode, Vector3 } from "@babylonjs/core";
+import { HeadBoneName } from "./world/Player";
 
 export class CharacterController {
 
@@ -713,6 +714,7 @@ export class CharacterController {
   //for how long the AV has been in the jump
   private _jumpTime: number = 0;
   private _doJump(dt: number): ActionData {
+    this._updateHead();
 
     let anim: ActionData = null;
     anim = this._actionMap.runJump;
@@ -804,6 +806,15 @@ export class CharacterController {
    */
   private _verticalSlope(v: Vector3): number {
     return Math.atan(Math.abs(v.y / Math.sqrt(v.x * v.x + v.z * v.z)));
+  }
+
+  // TODO REMOVE ME
+  // Face does not follow character unless the skeleton is updated here
+  // This is not optimal, wait for an answer here:
+  // https://forum.babylonjs.com/t/parenting-an-object-to-a-bone-without-animation/26017
+  private _headBone;
+  private _updateHead() {
+    this._headBone?.markAsDirty();
   }
 
   //for how long has the av been falling while moving
@@ -963,11 +974,10 @@ export class CharacterController {
       } else {
         this._avatar.rotation.y = this._av2cam - this._camera.alpha;
       }
-    } else {
-
     }
 
     if (moving) {
+      this._updateHead();
       if (this._moveVector.length() > 0.001) {
         this._avatar.moveWithCollisions(this._moveVector);
         //walking up a slope
@@ -1377,6 +1387,7 @@ export class CharacterController {
     let rootNode = this._root(avatar);
     if (rootNode instanceof Mesh || rootNode instanceof AbstractMesh) {
       this._avatar = rootNode;
+      this._headBone = this._avatar.skeleton?.bones[this._avatar.skeleton?.getBoneIndexByName(HeadBoneName) || -1]
     } else {
       console.error("Cannot move this mesh. The root node of the mesh provided is not a mesh");
       return false;

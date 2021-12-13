@@ -1,0 +1,126 @@
+Exporter version: 2.93.4, Blender version: 3.0.0
+========= Conversion from Blender to Babylon.js =========
+	Scene settings used :
+		Inline textures     :  false
+		Material Type       :  PBR
+		Positions Precision :  4
+		Normals Precision   :  3
+		UVs Precision       :  3
+		Vert Color Precision:  3
+		Mat Weight Precision:  2
+		Keep Z-up r-handed  :  no
+		Texture directory   :  /Users/matus/dev/kava3/public/assets/player/man/
+	Python World class constructor completed
+	processing begun of skeleton:  Armature, id:  0
+		processing begun of bone:  Bone, index:  0
+		processing begun of bone:  Bone.001, index:  1
+		processing begun of bone:  Bone.002, index:  2
+		processing begun of bone:  Bone.003, index:  3
+		processing begun of bone:  Bone.004, index:  4
+		processing begun of bone:  Bone.005, index:  5
+		processing begun of bone:  Bone.006, index:  6
+		processing begun of bone:  Bone.007, index:  7
+		processing begun of bone:  Bone.008, index:  8
+		processing begun of bone:  Bone.009, index:  9
+		processing begun of bone:  Bone.015, index:  10
+		processing begun of bone:  Bone.016, index:  11
+		processing begun of bone:  Bone.021, index:  12
+		processing begun of bone:  Bone.022, index:  13
+		processing begun of bone:  Bone.017, index:  14
+		processing begun of bone:  Bone.032, index:  15
+		processing begun of bone:  Bone.033, index:  16
+		processing begun of bone:  Bone.034, index:  17
+		processing begun of bone:  Bone.018, index:  18
+		processing begun of bone:  Bone.029, index:  19
+		processing begun of bone:  Bone.030, index:  20
+		processing begun of bone:  Bone.031, index:  21
+		processing begun of bone:  Bone.019, index:  22
+		processing begun of bone:  Bone.026, index:  23
+		processing begun of bone:  Bone.027, index:  24
+		processing begun of bone:  Bone.028, index:  25
+		processing begun of bone:  Bone.020, index:  26
+		processing begun of bone:  Bone.023, index:  27
+		processing begun of bone:  Bone.024, index:  28
+		processing begun of bone:  Bone.025, index:  29
+		processing begun of bone:  Bone.035, index:  30
+		processing begun of bone:  Bone.036, index:  31
+		processing begun of bone:  Bone.037, index:  32
+		processing begun of bone:  Bone.043, index:  33
+		processing begun of bone:  Bone.044, index:  34
+		processing begun of bone:  Bone.049, index:  35
+		processing begun of bone:  Bone.050, index:  36
+		processing begun of bone:  Bone.045, index:  37
+		processing begun of bone:  Bone.060, index:  38
+		processing begun of bone:  Bone.061, index:  39
+		processing begun of bone:  Bone.062, index:  40
+		processing begun of bone:  Bone.046, index:  41
+		processing begun of bone:  Bone.057, index:  42
+		processing begun of bone:  Bone.058, index:  43
+		processing begun of bone:  Bone.059, index:  44
+		processing begun of bone:  Bone.047, index:  45
+		processing begun of bone:  Bone.054, index:  46
+		processing begun of bone:  Bone.055, index:  47
+		processing begun of bone:  Bone.056, index:  48
+		processing begun of bone:  Bone.048, index:  49
+		processing begun of bone:  Bone.051, index:  50
+		processing begun of bone:  Bone.052, index:  51
+		processing begun of bone:  Bone.053, index:  52
+		processing begun of bone:  Bone.010, index:  53
+		processing begun of bone:  Bone.011, index:  54
+		processing begun of bone:  Bone.012, index:  55
+		processing begun of bone:  Bone.013, index:  56
+		processing begun of bone:  Bone.014, index:  57
+		processing begun of bone:  Bone.038, index:  58
+		processing begun of bone:  Bone.039, index:  59
+		processing begun of bone:  Bone.040, index:  60
+		processing begun of bone:  Bone.041, index:  61
+		processing begun of bone:  Bone.042, index:  62
+	processing begun of camera (UniversalCamera):  Camera
+	processing begun of mesh:  Alfred_low
+		processing begun of material:  Alfred_Mat
+			processing texture alfred_dif
+				texture type:  diffuseTexture, mapped using: "UVTex"
+		num positions      :  2960
+		num normals        :  2960
+		num tangents       :  0
+		num uvs            :  5920
+		num uvs2           :  0
+		num colors         :  11840
+		num triangles      :  3732
+		Skeleton stats:  
+			WARNING: Maximum # of influencers exceeded for 57 vertices, extras ignored
+			Total Influencers:  9339
+			Avg # of influencers per vertex:  3.1551
+			Highest # of influencers observed:  12, num vertices with this:  57
+			exported as 8 influencers
+			num skeletonWeights and skeletonIndices:  23680
+	processing begun of mesh:  Cube.009
+		processing begun of material:  mat
+		num positions      :  67516
+		num normals        :  67516
+		num tangents       :  0
+		num uvs            :  0
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  24448
+	processing begun of mesh:  Plane.005
+		processing begun of material:  mat
+		registered as also a user of material:  mat
+		num positions      :  75
+		num normals        :  75
+		num tangents       :  0
+		num uvs            :  0
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  121
+		WARNING: # of 0 area faces found:  4
+	processing begun of light (SPOT):  Lamp
+	processing begun of light (POINT):  Lamp.002
+	processing begun of light (POINT):  Lamp.001
+========= Writing of JSON file started =========
+	writing mesh:  Alfred_low
+	writing mesh:  Cube.009
+	writing mesh:  Plane.005
+========= Writing of JSON file completed =========
+========= end of processing =========
+elapsed time:  0 min, 3.2921 secs

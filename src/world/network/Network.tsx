@@ -4,10 +4,10 @@ import { useAfterRender, useScene } from 'react-babylonjs';
 import { io, Socket } from 'socket.io-client';
 import { ActionData, CharacterController } from '../../CharacterController';
 import Subscription from '../../util/subscriptionUtil';
-import { Face } from '../FaceCapture';
+import { Body } from '../BodyCapture';
 import { useAppDispatch } from '../hooks';
 import { disconnected, update } from '../store/friends';
-import { EventClientUpdateLocation, EventServerUpdateClientDisconnected, EventServerUpdateClientLocation, ServerUpdateClientDisconnected, ServerUpdateClientLocation } from './api';
+import { EventClientUpdateBody, EventClientUpdateLocation, EventServerUpdateClientDisconnected, EventServerUpdateClientLocation, ServerUpdateClientDisconnected, ServerUpdateClientLocation } from './api';
 
 const NetFpsMax = 30;
 const NetFpxMaxOffsetInMs = Math.ceil(1000 / NetFpsMax);
@@ -15,7 +15,7 @@ const NetFpxMaxOffsetInMs = Math.ceil(1000 / NetFpsMax);
 const Network = (props: {
   player: Mesh;
   controller: CharacterController;
-  faceSubscription: Subscription<Face>;
+  bodySubscription: Subscription<Body>;
 }) => {
   const scene = useScene();
   const dispatch = useAppDispatch();
@@ -75,9 +75,9 @@ const Network = (props: {
       dispatch(disconnected(data.id));
     });
 
-    const faceUnsubscribe = props.faceSubscription.subscribe(face => {
+    const faceUnsubscribe = props.bodySubscription.subscribe(body => {
       if (socket.disconnected) return;
-      socket.volatile.emit(EventClientUpdateLocation, face);
+      socket.volatile.emit(EventClientUpdateBody, body);
     });
 
     socket.connect();

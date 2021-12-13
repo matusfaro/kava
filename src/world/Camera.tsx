@@ -13,7 +13,7 @@ export const Camera = (props: {
     cameraRef.current.alpha = -props.player.rotation.y - 4.69
     cameraRef.current.target = new Vector3(
       props.player.position.x,
-      props.player.position.y + 1.5,
+      props.player.position.y + 1,
       props.player.position.z);
     cameraRef.current.attachControl(canvas, false);
   }

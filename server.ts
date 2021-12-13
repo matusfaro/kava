@@ -1,7 +1,7 @@
 import express from 'express';
 import { Server as HttpServer } from 'http';
 import { Server as IoServer, Socket } from 'socket.io';
-import { ClientUpdateLocation, EventClientUpdateLocation, EventServerUpdateClientDisconnected, EventServerUpdateClientLocation, ServerUpdateClientDisconnected, ServerUpdateClientLocation } from './src/world/network/api';
+import { ClientUpdateBody, ClientUpdateLocation, EventClientUpdateLocation, EventServerUpdateClientBody, EventServerUpdateClientDisconnected, EventServerUpdateClientLocation, ServerUpdateClientBody, ServerUpdateClientDisconnected, ServerUpdateClientLocation } from './src/world/network/api';
 
 const app = express();
 
@@ -15,6 +15,14 @@ const io = new IoServer(server, {
 
 const newConnection = (socket: Socket) => {
 	console.log('User connect: ' + socket.id);
+
+	socket.on(EventClientUpdateLocation, (data: ClientUpdateBody) => {
+		const broadcastResponse: ServerUpdateClientBody = {
+			id: socket.id,
+			...data,
+		};
+		socket.broadcast.volatile.emit(EventServerUpdateClientBody, broadcastResponse);
+	});
 
 	socket.on(EventClientUpdateLocation, (data: ClientUpdateLocation) => {
 		const broadcastResponse: ServerUpdateClientLocation = {
