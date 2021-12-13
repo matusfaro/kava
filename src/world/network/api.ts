@@ -4,7 +4,7 @@ export interface Vector3Serializable { x: number; y: number; z: number };
 export interface RunningAnimation { name: string; speed: number; loop: boolean };
 
 export const EventClientUpdateLocation = 'client-update-location';
-export interface ClientUpdateLocation {
+export interface ClientUpdateLocation extends Body {
   position?: Vector3Serializable;
   rotation?: Vector3Serializable;
   animation?: RunningAnimation;

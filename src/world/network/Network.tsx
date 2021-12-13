@@ -7,7 +7,7 @@ import Subscription from '../../util/subscriptionUtil';
 import { Body } from '../BodyCapture';
 import { useAppDispatch } from '../hooks';
 import { disconnected, update } from '../store/friends';
-import { EventClientUpdateBody, EventClientUpdateLocation, EventServerUpdateClientDisconnected, EventServerUpdateClientLocation, ServerUpdateClientDisconnected, ServerUpdateClientLocation } from './api';
+import { EventClientUpdateBody, EventClientUpdateLocation, EventServerUpdateClientBody, EventServerUpdateClientDisconnected, EventServerUpdateClientLocation, ServerUpdateClientBody, ServerUpdateClientDisconnected, ServerUpdateClientLocation } from './api';
 
 const NetFpsMax = 30;
 const NetFpxMaxOffsetInMs = Math.ceil(1000 / NetFpsMax);
@@ -65,6 +65,10 @@ const Network = (props: {
 
     socket.on('disconnect', () => {
       console.log('socketio: disconnect');
+    });
+
+    socket.on(EventServerUpdateClientBody, (data: ServerUpdateClientBody) => {
+      dispatch(update(data));
     });
 
     socket.on(EventServerUpdateClientLocation, (data: ServerUpdateClientLocation) => {

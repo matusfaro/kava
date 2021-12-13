@@ -42,9 +42,7 @@ const FaceOriginRight = 145; // FACEMESH_LEFT_EYE[11][1]
 const captureToFace = (results: Results): Face | undefined => {
   if (!results.faceLandmarks) return undefined;
 
-  // console.log('debug img', (results.image as HTMLCanvasElement).toDataURL());
   // TODO this may be an img element instead of canvas in unknown cases
-  console.log('debug img', results.image);
   const img = (results.image as HTMLCanvasElement).toDataURL('image/jpeg', 0.1);
 
   const face: Face = {
@@ -89,7 +87,9 @@ const captureToFace = (results: Results): Face | undefined => {
   VertexData.ComputeNormals(
     face.mesh.positions,
     FaceMeshIndices,
-    face.mesh.normals);
+    face.mesh.normals, {
+    useRightHandedSystem: false,
+  });
 
   return face;
 }
@@ -123,7 +123,7 @@ const FaceCapture = (props: {
       enableFaceGeometry: false,
     });
 
-    mediapipe.onResults(async results => {
+    mediapipe.onResults(results => {
       const body = captureToBody(results);
       !!body && props.bodySubscription.notify(body);
       return new Promise(resolve => setTimeout(resolve, 1000 / 3))

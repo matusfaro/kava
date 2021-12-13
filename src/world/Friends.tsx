@@ -1,10 +1,11 @@
 import { Mesh, Vector3 } from '@babylonjs/core';
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import Subscription from '../util/subscriptionUtil';
+import { Face } from './BodyCapture';
 import { useAppSelector } from './hooks';
-import { Player } from './Player';
+import { HeadBoneName, Player } from './Player';
 
-export const Friends = (props: {
-}) => {
+export const Friends = () => {
   const friends = useAppSelector(state => state.friends.friends);
   return (
     <>
@@ -21,15 +22,21 @@ export const Friend = (props: {
   const [player, setPlayer] = useState<Mesh>();
   const playerCallback = useCallback(setPlayer, [setPlayer]);
 
-  // const friend = useMemo(() => {
-  //   const f = props.player.clone(`friend-${props.friendId}`);
-  //   f.skeleton = props.player.skeleton!.clone(`skeleton-${props.friendId}`, `skeleton-${props.friendId}`);
-  //   return f;
-  // }, []);
   const lastAnimNameRef = useRef<string>();
   const position = useAppSelector(state => state.friends.friends[props.friendId]?.position);
   const rotation = useAppSelector(state => state.friends.friends[props.friendId]?.rotation);
   const animation = useAppSelector(state => state.friends.friends[props.friendId]?.animation);
+
+  const faceSubscription: Subscription<Face> = useMemo(() => new Subscription(), []);
+  const face = useAppSelector(state => state.friends.friends[props.friendId]?.face);
+  if (!!face && faceSubscription.getValue() !== face) {
+    faceSubscription.notify(face);
+  }
+
+  // Update face location on movement
+  player?.skeleton?.bones[player?.skeleton?.getBoneIndexByName(HeadBoneName) || -1]
+    .markAsDirty();
+
   if (!position || !rotation) return null;
 
   if (!!player?.skeleton) {
@@ -41,7 +48,7 @@ export const Friend = (props: {
 
   return (
     <>
-      <Player playerReady={playerCallback} />
+      <Player playerReady={playerCallback} faceSubscription={faceSubscription} />
       {!!player && (
         <mesh
           fromInstance={player}

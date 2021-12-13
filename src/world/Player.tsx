@@ -15,6 +15,8 @@ const updateFace = (scene: Scene, faceRef: React.MutableRefObject<{ face: Mesh, 
     const material = new StandardMaterial(`${player.name}-face`, scene);
     material.diffuseTexture = faceRef.current.texture;
     faceRef.current.face.material = material;
+    // TODO the back is actually the front, fix it and turn this on
+    material.backFaceCulling = false;
 
     if (face.texture) {
       const img = new Image();
@@ -32,11 +34,11 @@ const updateFace = (scene: Scene, faceRef: React.MutableRefObject<{ face: Mesh, 
     if (face.texture) vertexData.uvs = face.texture.uvs;
     vertexData.applyToMesh(faceRef.current.face, true);
 
+    // faceRef.current.face.rotate(new Vector3(0, 1, 0), Math.PI);
+    faceRef.current.face.translate(new Vector3(0, 0.1, 0.12), 1);
+    faceRef.current.face.scaling = new Vector3(0.6, 0.6, 0.6);
     const headBone = skeleton.bones[skeleton.getBoneIndexByName(HeadBoneName)];
     faceRef.current.face.attachToBone(headBone, player);
-
-    faceRef.current.face.rotate(new Vector3(0, 1, 0), Math.PI);
-    faceRef.current.face.translate(new Vector3(0, 0.1, -0.2), 1);
   } else {
     if (face.texture) {
       const img = new Image();
@@ -55,12 +57,13 @@ const updateFace = (scene: Scene, faceRef: React.MutableRefObject<{ face: Mesh, 
 export const Player = (props: {
   playerReady: (player: Mesh) => void;
   bodySubscription?: Subscription<Body>;
+  faceSubscription?: Subscription<Face>;
   debugSkeleton?: boolean;
 }) => {
   const scene = useScene();
   const faceModelRef = useRef<{ face: Mesh, texture: DynamicTexture }>();
   useEffect(() => {
-    SceneLoader.ImportMesh("", "assets/player/man/", "ManCasual3new.babylon", scene, (meshes, particleSystems, skeletons) => {
+    SceneLoader.ImportMesh('', 'assets/player/man/', 'ManCasual3new.babylon', scene, (meshes, particleSystems, skeletons) => {
       let player = meshes[0] as Mesh;
       let skeleton = skeletons[0];
       if (props.debugSkeleton) {
@@ -85,12 +88,15 @@ export const Player = (props: {
       player.ellipsoid = new Vector3(0.5, 1, 0.5);
       player.ellipsoidOffset = new Vector3(0, 1, 0);
 
-      const faceUnsubscribe = props.bodySubscription?.subscribe(body =>
+      const bodyUnsubscribe = props.bodySubscription?.subscribe(body =>
         !!body.face && updateFace(scene!, faceModelRef, player, skeleton, body.face));
+      const faceUnsubscribe = props.faceSubscription?.subscribe(face =>
+        !!face && updateFace(scene!, faceModelRef, player, skeleton, face));
 
       props.playerReady(player);
 
       return () => {
+        bodyUnsubscribe?.();
         faceUnsubscribe?.();
       };
     });

@@ -1,7 +1,7 @@
 import express from 'express';
 import { Server as HttpServer } from 'http';
 import { Server as IoServer, Socket } from 'socket.io';
-import { ClientUpdateBody, ClientUpdateLocation, EventClientUpdateLocation, EventServerUpdateClientBody, EventServerUpdateClientDisconnected, EventServerUpdateClientLocation, ServerUpdateClientBody, ServerUpdateClientDisconnected, ServerUpdateClientLocation } from './src/world/network/api';
+import { ClientUpdateBody, ClientUpdateLocation, EventClientUpdateBody, EventClientUpdateLocation, EventServerUpdateClientBody, EventServerUpdateClientDisconnected, EventServerUpdateClientLocation, ServerUpdateClientBody, ServerUpdateClientDisconnected, ServerUpdateClientLocation } from './src/world/network/api';
 
 const app = express();
 
@@ -16,7 +16,8 @@ const io = new IoServer(server, {
 const newConnection = (socket: Socket) => {
 	console.log('User connect: ' + socket.id);
 
-	socket.on(EventClientUpdateLocation, (data: ClientUpdateBody) => {
+	socket.on(EventClientUpdateBody, (data: ClientUpdateBody) => {
+		// console.log(`Client ${socket.id} update body`,);
 		const broadcastResponse: ServerUpdateClientBody = {
 			id: socket.id,
 			...data,
@@ -25,6 +26,7 @@ const newConnection = (socket: Socket) => {
 	});
 
 	socket.on(EventClientUpdateLocation, (data: ClientUpdateLocation) => {
+		// console.log(`Client ${socket.id} update location`,);
 		const broadcastResponse: ServerUpdateClientLocation = {
 			id: socket.id,
 			...data,

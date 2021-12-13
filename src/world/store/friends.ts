@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { RunningAnimation, ServerUpdateClientLocation, Vector3Serializable } from '../network/api';
+import { Face } from '../BodyCapture';
+import { RunningAnimation, ServerUpdateClientBody, ServerUpdateClientLocation, Vector3Serializable } from '../network/api';
 import type { RootState } from './store';
 
 interface Friend {
@@ -7,6 +8,7 @@ interface Friend {
   position: Vector3Serializable;
   rotation: Vector3Serializable;
   animation?: RunningAnimation;
+  face?: Face;
 }
 interface FriendsState {
   friends: {
@@ -20,7 +22,7 @@ export const friendsSlice = createSlice({
   name: 'friends',
   initialState,
   reducers: {
-    update: (state, action: PayloadAction<ServerUpdateClientLocation>) => {
+    update: (state, action: PayloadAction<ServerUpdateClientLocation | ServerUpdateClientBody>) => {
       if (!state.friends[action.payload.id]) {
         state.friends[action.payload.id] = {
           position: { x: 0, y: 0, z: 0 },
@@ -28,9 +30,9 @@ export const friendsSlice = createSlice({
           ...action.payload
         };
       } else {
-        if (action.payload.position) state.friends[action.payload.id].position = action.payload.position;
-        if (action.payload.rotation) state.friends[action.payload.id].rotation = action.payload.rotation;
-        if (action.payload.animation) state.friends[action.payload.id].animation = action.payload.animation;
+        Object.entries(action.payload).forEach(([key, val]) => {
+          state.friends[action.payload.id][key as keyof Friend] = val;
+        });
       }
     },
     disconnected: (state, action: PayloadAction<string>) => {
