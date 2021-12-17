@@ -9,6 +9,14 @@ import { FaceChin, FaceEyeLeft, FaceEyeRight, FaceMeshIndices } from './FaceCapt
 
 export const FaceCaptureDimensions = { width: 1280, height: 720 };
 
+export interface SkeletonUpdate {
+  bones?: Array<{
+    i: number; // bone index
+    p?: Vector; // Position
+    r?: Vector; // Rotation
+  }>,
+}
+
 export interface Body {
   face?: Face,
   neck?: Neck,
@@ -19,12 +27,39 @@ export interface Body {
 export interface Neck extends Orientation { };
 export interface Vector { x: number, y: number, z: number };
 export interface Orientation {
-  position: Vector;
-  rotation: Vector;
+  position?: Vector;
+  rotation?: Vector;
+}
+export interface Finger {
+  proximal?: Orientation;
+  middle?: Orientation;
+  distal?: Orientation;
+}
+export interface Thumb {
+  metacarpal?: Orientation;
+  proximal?: Orientation;
+  distal?: Orientation;
 }
 export interface Hand {
+  hand?: Orientation;
+  thumb?: Thumb;
+  pointer?: Finger;
+  middle?: Finger;
+  ring?: Finger;
+  little?: Finger;
 }
 export interface Pose {
+  shoulder?: Orientation;
+  armRightUpper?: Vector;
+  armRightLower?: Vector;
+  legRightUpper?: Vector;
+  legRightLower?: Vector;
+  footRight?: Vector;
+  toesRight?: Vector;
+  legLeftUpper?: Vector;
+  legLeftLower?: Vector;
+  footLeft?: Vector;
+  toesLeft?: Vector;
 }
 export interface Face {
   mesh: {
@@ -35,6 +70,45 @@ export interface Face {
     uvs: Array<number>;
     img: string;
   },
+}
+
+const calcRotationAxis = (
+  from: Vector,
+  to: Vector,
+  axisFrom: keyof Vector,
+  axisTo: keyof Vector,
+): number => Math.atan2(
+  to[axisTo] - from[axisTo],
+  to[axisFrom] - from[axisFrom],
+);
+
+const calcPosition = (
+  from?: Vector,
+  to?: Vector,
+  invertY?: boolean,
+): Vector | undefined => (!from || !to) ? undefined : {
+  x: (to.x - from.x),
+  y: invertY ? (from.y - to.y) : (to.y - from.y),
+  z: (to.z - from.z),
+};
+
+const captureToPose = (results: Results): Pose | undefined => {
+  return undefined;
+  // const upperArm = calcPosition(results.poseLandmarks?.[0], results.poseLandmarks?.[0], true);
+  // const lowerArm = calcPosition(results.poseLandmarks?.[0], results.poseLandmarks?.[0], true);
+  // const shoulder = calcPosition(results.poseLandmarks?.[0], results.poseLandmarks?.[0], true);
+  // const upperLeg = calcPosition(results.poseLandmarks?.[0], results.poseLandmarks?.[0], true);
+  // const foot = calcPosition(results.poseLandmarks?.[0], results.poseLandmarks?.[0], true);
+  // const toes = calcPosition(results.poseLandmarks?.[0], results.poseLandmarks?.[0], true);
+
+  // if (!upperArm
+  //   && !lowerArm
+  //   && !shoulder
+  //   && !upperLeg
+  //   && !foot
+  //   && !toes) return undefined;
+
+  // return { upperArm, lowerArm, shoulder, upperLeg, foot, toes };
 }
 
 const captureToNeck = (results: Results): Neck | undefined => {
@@ -61,35 +135,16 @@ const captureToNeck = (results: Results): Neck | undefined => {
     (shoulderOriginRight.z + shoulderOriginLeft.z) / 2,
   );
 
-  const calcRotation = (
-    from: Vector,
-    to: Vector,
-    axisFrom: keyof Vector,
-    axisTo: keyof Vector,
-  ): number => Math.atan2(
-    to[axisTo] - from[axisTo],
-    to[axisFrom] - from[axisFrom],
-  );
-
   const orientation: Orientation = {
-    position: {
-      x: (faceOrigin.x - shoulderOrigin.x),
-      y: (shoulderOrigin.y - faceOrigin.y),
-      z: (faceOrigin.z - shoulderOrigin.z),
-    },
+    position: calcPosition(shoulderOrigin, faceOrigin, true),
     rotation: {
-      x: calcRotation(faceOrigin, faceOriginBottom, 'y', 'z'),
-      y: calcRotation(faceOriginLeft, faceOriginRight, 'x', 'z'),
-      z: -calcRotation(faceOriginLeft, faceOriginRight, 'x', 'y'),
+      x: calcRotationAxis(faceOrigin, faceOriginBottom, 'y', 'z'),
+      y: calcRotationAxis(faceOriginLeft, faceOriginRight, 'x', 'z'),
+      z: -calcRotationAxis(faceOriginLeft, faceOriginRight, 'x', 'y'),
     },
   };
 
   return orientation;
-}
-
-const captureToPose = (results: Results): Pose | undefined => {
-
-  return undefined;
 }
 
 const captureToFace = (results: Results): Face | undefined => {
@@ -181,7 +236,7 @@ const FaceCapture = (props: {
     mediapipe.onResults(results => {
       const body = captureToBody(results);
       !!body && props.bodySubscription.notify(body);
-      return new Promise(resolve => setTimeout(resolve, 1000 / 3))
+      return new Promise(resolve => setTimeout(resolve, 1000 / 30))
     });
 
     const camera = new Camera(props.videoElement, {

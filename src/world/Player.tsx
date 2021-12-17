@@ -2,7 +2,7 @@ import { Color3, DynamicTexture, Mesh, Scene, SceneLoader, Skeleton, SkeletonVie
 import { useEffect, useRef } from 'react';
 import { useScene } from 'react-babylonjs';
 import Subscription from '../util/subscriptionUtil';
-import { Body, Face, FaceCaptureDimensions, Neck, Vector } from './BodyCapture';
+import { Body, Face, FaceCaptureDimensions, Neck, Orientation, Vector } from './BodyCapture';
 import { FaceMeshIndices } from './FaceCaptureConst';
 
 export const HeadBoneName = 'Head';
@@ -54,17 +54,31 @@ const updateFace = (scene: Scene, faceRef: React.MutableRefObject<{ face: Mesh, 
   }
 }
 
+const updateBone = (skeleton: Skeleton, boneName: string, orientation: Orientation) => {
+  const bone = skeleton.bones[skeleton.getBoneIndexByName(boneName)];
+  !!orientation.position && bone?.setPosition(new Vector3(
+    orientation.position.x + NeckPositionBase.x,
+    orientation.position.y + NeckPositionBase.y,
+    orientation.position.z + NeckPositionBase.z,
+  ));
+  !!orientation.rotation && bone?.setRotation(new Vector3(
+    orientation.rotation.x,
+    orientation.rotation.y,
+    orientation.rotation.z,
+  ));
+};
+
 export const NeckPositionBase: Vector = { x: 0, y: 0, z: 0 };
 export const NeckBoneName = 'Neck';
 const updateNeck = (scene: Scene, skeleton: Skeleton, neck: Neck) => {
   const neckBone = skeleton.bones[skeleton.getBoneIndexByName(NeckBoneName)];
   const headBone = skeleton.bones[skeleton.getBoneIndexByName(HeadBoneName)];
-  neckBone?.setPosition(new Vector3(
+  !!neck.position && neckBone?.setPosition(new Vector3(
     neck.position.x + NeckPositionBase.x,
     neck.position.y + NeckPositionBase.y,
     neck.position.z + NeckPositionBase.z,
   ));
-  headBone?.setRotation(new Vector3(
+  !!neck.rotation && headBone?.setRotation(new Vector3(
     neck.rotation.x,
     neck.rotation.y,
     neck.rotation.z,
@@ -92,6 +106,12 @@ export const Player = (props: {
       player.skeleton = skeleton;
 
       skeleton.enableBlending(0.1);
+
+      ['FingerMiddle01.R', 'Head', 'Neck', 'Chest', 'LowerLeg.R'].forEach(boneName => {
+        console.log(`${boneName} pos`, skeleton.bones[skeleton.getBoneIndexByName(boneName)].position);
+        console.log(`${boneName} rot`, skeleton.bones[skeleton.getBoneIndexByName(boneName)].rotation);
+        console.log(`${boneName} sca`, skeleton.bones[skeleton.getBoneIndexByName(boneName)].scaling);
+      })
 
       let sm = player.material as StandardMaterial;
       if (sm.diffuseTexture != null) {
