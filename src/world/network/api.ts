@@ -1,4 +1,4 @@
-import { Body } from "../BodyCapture";
+import { Body } from "../capture/BodyCapture";
 
 export interface Vector3Serializable { x: number; y: number; z: number };
 export interface RunningAnimation { name: string; speed: number; loop: boolean };

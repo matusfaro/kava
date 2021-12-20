@@ -1,9 +1,9 @@
-import { Color3, DynamicTexture, Mesh, Scene, SceneLoader, Skeleton, SkeletonViewer, StandardMaterial, Vector3, VertexBuffer, VertexData } from '@babylonjs/core';
+import { Color3, DynamicTexture, Mesh, Quaternion, Scene, SceneLoader, Skeleton, SkeletonViewer, StandardMaterial, Vector3, VertexBuffer, VertexData } from '@babylonjs/core';
 import { useEffect, useRef } from 'react';
 import { useScene } from 'react-babylonjs';
 import Subscription from '../util/subscriptionUtil';
-import { Body, Face, FaceCaptureDimensions, Neck, Orientation, Vector } from './BodyCapture';
-import { FaceMeshIndices } from './FaceCaptureConst';
+import { Body, Face, FaceCaptureDimensions, SkeletonUpdate, Vector } from './capture/BodyCapture';
+import { FaceMeshIndices } from './capture/faceConst';
 
 export const HeadBoneName = 'Head';
 const updateFace = (scene: Scene, faceRef: React.MutableRefObject<{ face: Mesh, texture: DynamicTexture } | undefined>, player: Mesh, skeleton: Skeleton, face: Face) => {
@@ -54,35 +54,19 @@ const updateFace = (scene: Scene, faceRef: React.MutableRefObject<{ face: Mesh, 
   }
 }
 
-const updateBone = (skeleton: Skeleton, boneName: string, orientation: Orientation) => {
-  const bone = skeleton.bones[skeleton.getBoneIndexByName(boneName)];
-  !!orientation.position && bone?.setPosition(new Vector3(
-    orientation.position.x + NeckPositionBase.x,
-    orientation.position.y + NeckPositionBase.y,
-    orientation.position.z + NeckPositionBase.z,
-  ));
-  !!orientation.rotation && bone?.setRotation(new Vector3(
-    orientation.rotation.x,
-    orientation.rotation.y,
-    orientation.rotation.z,
-  ));
-};
-
 export const NeckPositionBase: Vector = { x: 0, y: 0, z: 0 };
 export const NeckBoneName = 'Neck';
-const updateNeck = (scene: Scene, skeleton: Skeleton, neck: Neck) => {
-  const neckBone = skeleton.bones[skeleton.getBoneIndexByName(NeckBoneName)];
-  const headBone = skeleton.bones[skeleton.getBoneIndexByName(HeadBoneName)];
-  !!neck.position && neckBone?.setPosition(new Vector3(
-    neck.position.x + NeckPositionBase.x,
-    neck.position.y + NeckPositionBase.y,
-    neck.position.z + NeckPositionBase.z,
-  ));
-  !!neck.rotation && headBone?.setRotation(new Vector3(
-    neck.rotation.x,
-    neck.rotation.y,
-    neck.rotation.z,
-  ));
+const updateSkeleton = (updates: SkeletonUpdate, skeleton: Skeleton) => {
+  for (const update of updates) {
+    const boneIndex = skeleton.getBoneIndexByName(update.n);
+    if (boneIndex === -1) continue;
+    const bone = skeleton.bones[boneIndex];
+    if (!bone) continue;
+    update.p && bone.setPosition(new Vector3(update.p.x, update.p.y, update.p.z));
+    update.r && bone.setRotation(new Vector3(update.r.x, update.r.y, update.r.z));
+    update.q && bone.setRotationQuaternion(new Quaternion(update.q.x, update.q.y, update.q.z, update.q.w));
+    update.s !== undefined && bone.setScale(new Vector3(update.s, update.s, update.s));
+  }
 };
 
 export const Player = (props: {
@@ -107,12 +91,6 @@ export const Player = (props: {
 
       skeleton.enableBlending(0.1);
 
-      ['FingerMiddle01.R', 'Head', 'Neck', 'Chest', 'LowerLeg.R'].forEach(boneName => {
-        console.log(`${boneName} pos`, skeleton.bones[skeleton.getBoneIndexByName(boneName)].position);
-        console.log(`${boneName} rot`, skeleton.bones[skeleton.getBoneIndexByName(boneName)].rotation);
-        console.log(`${boneName} sca`, skeleton.bones[skeleton.getBoneIndexByName(boneName)].scaling);
-      })
-
       let sm = player.material as StandardMaterial;
       if (sm.diffuseTexture != null) {
         sm.backFaceCulling = true;
@@ -127,8 +105,8 @@ export const Player = (props: {
 
       const bodyUnsubscribe = props.bodySubscription?.subscribe(body => {
         if (!scene) return;
-        !!body.face && updateFace(scene, faceModelRef, player, skeleton, body.face);
-        !!body.neck && updateNeck(scene, skeleton, body.neck);
+        // !!body.face && updateFace(scene, faceModelRef, player, skeleton, body.face);
+        updateSkeleton(body.skeleton, skeleton);
       });
 
       const faceUnsubscribe = props.faceSubscription?.subscribe(face =>

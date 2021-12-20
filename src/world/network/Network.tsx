@@ -4,7 +4,7 @@ import { useAfterRender, useScene } from 'react-babylonjs';
 import { io, Socket } from 'socket.io-client';
 import { ActionData, CharacterController } from '../../CharacterController';
 import Subscription from '../../util/subscriptionUtil';
-import { Body } from '../BodyCapture';
+import { Body } from '../capture/BodyCapture';
 import { useAppDispatch } from '../hooks';
 import { disconnected, update } from '../store/friends';
 import { EventClientUpdateBody, EventClientUpdateLocation, EventServerUpdateClientBody, EventServerUpdateClientDisconnected, EventServerUpdateClientLocation, ServerUpdateClientBody, ServerUpdateClientDisconnected, ServerUpdateClientLocation } from './api';

@@ -1,7 +1,7 @@
 import { Mesh, Vector3 } from '@babylonjs/core';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import Subscription from '../util/subscriptionUtil';
-import { Face } from './BodyCapture';
+import { Face } from './capture/BodyCapture';
 import { useAppSelector } from './hooks';
 import { HeadBoneName, Player } from './Player';
 

@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Face } from '../BodyCapture';
+import { Face } from '../capture/BodyCapture';
 import { RunningAnimation, ServerUpdateClientBody, ServerUpdateClientLocation, Vector3Serializable } from '../network/api';
 import type { RootState } from './store';
 
