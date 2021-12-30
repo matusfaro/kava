@@ -70,6 +70,7 @@ const updateSkeleton = (updates: SkeletonUpdate, skeleton: Skeleton) => {
 };
 
 export const Player = (props: {
+  name: string;
   playerReady: (player: Mesh) => void;
   bodySubscription?: Subscription<Body>;
   faceSubscription?: Subscription<Face>;
@@ -80,6 +81,7 @@ export const Player = (props: {
   useEffect(() => {
     SceneLoader.ImportMesh('', 'assets/player/man/', 'ManCasual3new.babylon', scene, (meshes, particleSystems, skeletons) => {
       let player = meshes[0] as Mesh;
+      player.name = props.name;
       let skeleton = skeletons[0];
       if (props.debugSkeleton) {
         const skeletonViewer = new SkeletonViewer(skeleton, player, scene!, false, 3, {
@@ -105,7 +107,7 @@ export const Player = (props: {
 
       const bodyUnsubscribe = props.bodySubscription?.subscribe(body => {
         if (!scene) return;
-        // !!body.face && updateFace(scene, faceModelRef, player, skeleton, body.face);
+        !!body.face && updateFace(scene, faceModelRef, player, skeleton, body.face);
         updateSkeleton(body.skeleton, skeleton);
       });
 

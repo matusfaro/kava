@@ -3,12 +3,10 @@ import { Results } from '@mediapipe/holistic';
 import { SkeletonUpdate, Vector } from './BodyCapture';
 import { FaceChin, FaceEyeLeft, FaceEyeRight } from './faceConst';
 
-const scaleMultiplier = 0.2;
-
+// DEPRECATED
 export const capturePose = (holistic: Results, out: SkeletonUpdate): boolean => {
 
-  return captureNeck(holistic, out)
-    || capturer.capture(holistic, out);
+  return captureNeck(holistic, out);
 }
 
 const captureNeck = (holistic: Results, out: SkeletonUpdate): boolean => {
@@ -50,22 +48,6 @@ const captureNeck = (holistic: Results, out: SkeletonUpdate): boolean => {
   return true;
 }
 
-const calcCenter = (left?: Vector, right?: Vector): Vector3 | undefined => (!left || !right) ? undefined : new Vector3(
-  (right.x + left.x) / 2,
-  (right.y + left.y) / 2,
-  (right.z + left.z) / 2,
-);
-
-const getPoseLandmark = (holistic: Results, index: number): Vector3 | undefined => {
-  const landmark = holistic.poseLandmarks?.[index];
-  return !landmark ? undefined : new Vector3(landmark.x, landmark.y, landmark.z);
-}
-
-const getFaceLandmark = (holistic: Results, index: number): Vector3 | undefined => {
-  const landmark = holistic.faceLandmarks?.[index];
-  return !landmark ? undefined : new Vector3(landmark.x, landmark.y, landmark.z);
-}
-
 const calcRotationAxis = (
   from: Vector,
   to: Vector,
@@ -75,13 +57,6 @@ const calcRotationAxis = (
   to[axisTo] - from[axisTo],
   to[axisFrom] - from[axisFrom],
 );
-const calcRotation = (
-  from: Vector3,
-  to: Vector3,
-): number => Vector3.GetAngleBetweenVectors(
-  from,
-  to,
-  Vector3.Cross(from, to));
 
 const calcPosition = (
   from: Vector,

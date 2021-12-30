@@ -6,9 +6,10 @@ import { Provider } from 'react-redux';
 import { CharacterController } from '../CharacterController';
 import Subscription from '../util/subscriptionUtil';
 import { Camera } from './Camera';
-import FaceCapture, { Body } from './capture/BodyCapture';
+import BodyCapture, { Body } from './capture/BodyCapture';
 import { City } from './City';
 import { Controller } from './Controller';
+import { DebugAxes } from './DebugAxes';
 import { Friends } from './Friends';
 import './game.css';
 import { Joystick } from './Joystick';
@@ -18,6 +19,8 @@ import { store } from './store/store';
 
 const Game = (props: {
   enableVideo?: boolean;
+  debugRef: React.RefObject<boolean>;
+  webcamCanvasRef: React.RefObject<HTMLCanvasElement>;
 }) => {
   const faceSubscription: Subscription<Body> = useMemo(() => new Subscription(), []);
 
@@ -42,7 +45,7 @@ const Game = (props: {
             <Provider store={store}>
               <hemisphericLight name='lightHemi' intensity={1} direction={Vector3.Up()} />
               <pointLight name='lightPoint' position={new Vector3(80, 100, 100)} specular={Color3.Black()} diffuse={new Color3(255 / 255, 240 / 255, 221 / 255)} />
-              <Player playerReady={playerCallback} bodySubscription={faceSubscription} />
+              <Player key='playerSelf' name='playerSelf' playerReady={playerCallback} bodySubscription={faceSubscription} />
               <Camera player={player} cameraReady={cameraCallback} />
               <City groundReady={groundCallback} />
               {/* <box name='ground' width={100} depth={100} height={1} checkCollisions /> */}
@@ -50,8 +53,9 @@ const Game = (props: {
                 <Controller player={player} camera={camera} controllerReady={controllerCallback} />
               )}
               {!!player && !!controller && (<Network player={player} controller={controller} bodySubscription={faceSubscription} />)}
-              {!!player && !!video && (<FaceCapture player={player} videoElement={video} bodySubscription={faceSubscription} />)}
+              {!!player && !!video && (<BodyCapture player={player} videoElement={video} bodySubscription={faceSubscription} debugRef={props.debugRef} webcamCanvasRef={props.webcamCanvasRef} />)}
               <Friends />
+              <DebugAxes />
             </Provider>
           </Suspense>
         </Scene>

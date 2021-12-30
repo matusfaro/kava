@@ -48,7 +48,7 @@ export const Friend = (props: {
 
   return (
     <>
-      <Player playerReady={playerCallback} faceSubscription={faceSubscription} />
+      <Player name={props.friendId} playerReady={playerCallback} faceSubscription={faceSubscription} />
       {!!player && (
         <mesh
           fromInstance={player}
