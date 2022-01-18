@@ -7,6 +7,7 @@ import Subscription from '../../util/subscriptionUtil';
 import { Capturer } from './capturer';
 import { captureFace } from './face';
 
+export const FaceCaptureEnabled = false;
 export const FaceCaptureDimensions = { width: 1280, height: 720 };
 
 // TODO convert these into number arrays
@@ -40,7 +41,7 @@ const captureToBody = (results: Results, capturer: Capturer): Body | undefined =
   const body: Body = { skeleton: [] };
 
   var changed = false;
-  changed = captureFace(results, body) || changed;
+  if (FaceCaptureEnabled) changed = captureFace(results, body) || changed;
   changed = capturer.capture(results, body.skeleton) || changed;
 
   return changed ? body : undefined;

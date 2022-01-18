@@ -5,7 +5,11 @@ import Subscription from '../util/subscriptionUtil';
 import { Body, Face, FaceCaptureDimensions, SkeletonUpdate, Vector } from './capture/BodyCapture';
 import { FaceMeshIndices } from './capture/faceConst';
 
+const FaceEnabled = true;
+const BoneRotationEnabled = true;
+const BoneScalingEnabled = false;
 export const HeadBoneName = 'Head';
+
 const updateFace = (scene: Scene, faceRef: React.MutableRefObject<{ face: Mesh, texture: DynamicTexture } | undefined>, player: Mesh, skeleton: Skeleton, face: Face) => {
   if (!faceRef.current) {
     faceRef.current = {
@@ -62,10 +66,10 @@ const updateSkeleton = (updates: SkeletonUpdate, skeleton: Skeleton) => {
     if (boneIndex === -1) continue;
     const bone = skeleton.bones[boneIndex];
     if (!bone) continue;
-    update.p && bone.setPosition(new Vector3(update.p.x, update.p.y, update.p.z));
-    update.r && bone.setRotation(new Vector3(update.r.x, update.r.y, update.r.z));
-    update.q && bone.setRotationQuaternion(new Quaternion(update.q.x, update.q.y, update.q.z, update.q.w));
-    update.s !== undefined && bone.setScale(new Vector3(update.s, update.s, update.s));
+    BoneScalingEnabled && update.p && bone.setPosition(new Vector3(update.p.x, update.p.y, update.p.z));
+    BoneRotationEnabled && update.r && bone.setRotation(new Vector3(update.r.x, update.r.y, update.r.z));
+    BoneRotationEnabled && update.q && bone.setRotationQuaternion(new Quaternion(update.q.x, update.q.y, update.q.z, update.q.w));
+    BoneScalingEnabled && update.s !== undefined && bone.setScale(new Vector3(update.s, update.s, update.s));
   }
 };
 
@@ -107,7 +111,7 @@ export const Player = (props: {
 
       const bodyUnsubscribe = props.bodySubscription?.subscribe(body => {
         if (!scene) return;
-        !!body.face && updateFace(scene, faceModelRef, player, skeleton, body.face);
+        FaceEnabled && !!body.face && updateFace(scene, faceModelRef, player, skeleton, body.face);
         updateSkeleton(body.skeleton, skeleton);
       });
 
