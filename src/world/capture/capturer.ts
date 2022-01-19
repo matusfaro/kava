@@ -29,48 +29,42 @@ interface BoneMapping {
 const worldUp = Vector3.Up();
 const worldForward = Vector3.Forward();
 
-// const boneHands: BoneMapping[] = [true, false].map(isLeft => ({
-//   boneNames: [isLeft ? 'LowerArm.L' : 'LowerArm.R'],
-//   getDef: (r, rotationParent, defParent) => {
-//     const elbow = getPoseLandmark(r, isLeft ? 13 : 14);
-//     const wrist = getPoseLandmark(r, isLeft ? 15 : 16);
-//     const fingerThe = getPoseLandmark(r, isLeft ? 19 : 20);
-//     const fingerLittle = getPoseLandmark(r, isLeft ? 17 : 18);
-//     if (!elbow || !wrist || !fingerThe || !fingerLittle) return undefined;
+const boneHands: BoneMapping[] = [true, false].map(isLeft => ({
+  boneNames: [isLeft ? 'Hand.L' : 'Hand.R'],
+  getDef: (r, rotationParent, defParent) => {
+    const elbow = getPoseLandmark(r, isLeft ? 13 : 14);
+    const wrist = getPoseLandmark(r, isLeft ? 15 : 16);
+    const fingerIndex = getPoseLandmark(r, isLeft ? 19 : 20);
+    const fingerLittle = getPoseLandmark(r, isLeft ? 17 : 18);
+    if (!elbow || !wrist || !fingerIndex || !fingerLittle) return undefined;
 
-//     TODO TODO TODO 
+    const boneForward = wrist.subtract(elbow).normalize();
+    const boneUp = defParent?.[1].normalizeToNew() || worldUp;
 
-//     // TODO need to add an extra y rotation into BoneDefinition to account for cases like hands
+    const handCenter = Vector3.Center(fingerIndex, fingerLittle);
+    const target = handCenter.subtract(wrist).normalize();
+    const targetUp = Vector3.Cross(
+      target,
+      fingerIndex.subtract(fingerLittle).normalize());
 
-//     const y = elbow?.subtract(shoulder).normalize();
-//     const z = Vector3.Cross(elbow, defParent[2]);
-//     const target = wrist.subtract(elbow);
-//     return [y, z, target];
-//   },
-//   children: [],
-// }));
+    return [boneForward, boneUp, target, targetUp];
+  },
+  children: [],
+}));
 const boneLowerArms: BoneMapping[] = [true, false].map(isLeft => ({
   boneNames: [isLeft ? 'LowerArm.L' : 'LowerArm.R'],
   getDef: (r, rotationParent, defParent) => {
-    // TODO
     const shoulder = getPoseLandmark(r, isLeft ? 11 : 12);
     const elbow = getPoseLandmark(r, isLeft ? 13 : 14);
     const wrist = getPoseLandmark(r, isLeft ? 15 : 16);
     if (!defParent || !shoulder || !elbow || !wrist) return undefined;
     const boneForward = elbow.subtract(shoulder).normalize();
-    const boneUp = defParent?.[0].normalizeToNew() || worldUp;
+    const boneUp = defParent?.[1].normalizeToNew() || worldUp;
     const target = wrist.subtract(elbow).normalize();
-
-
-    const y = elbow?.subtract(shoulder).normalize();
-    const z = Vector3.Cross(elbow, defParent[2]);
-    const yTarget = wrist.subtract(elbow);
-    // return [y, z, yTarget, undefined];
-
 
     return [boneForward, boneUp, target, undefined];
   },
-  children: [],
+  children: [boneHands[isLeft ? 0 : 1]],
 }));
 const boneUpperArms: BoneMapping[] = [true, false].map(isLeft => ({
   boneNames: [isLeft ? 'UpperArm.L' : 'UpperArm.R'],
@@ -163,6 +157,8 @@ export class Capturer {
       updates,
       false,
       boneSpine,
+      // boneNeck,
+      // boneUpperArms[0],
       Quaternion.Identity());
   }
 
@@ -176,22 +172,24 @@ export class Capturer {
       // TODO rotate using this: https://stackoverflow.com/a/52551983
       // https://stackoverflow.com/questions/349050/calculating-a-lookat-matrix
       // Based on Matrix.LookAtLH
+      const rotZ = target.normalizeToNew();
+      const rotX = Vector3.Cross((targetUp || boneUp).normalizeToNew(), rotZ).normalize();
+      const rotY = Vector3.Cross(rotZ, rotX).normalize();
 
-      const rotLocalZ = boneForward.normalizeToNew();
-      const rotLocalX = Vector3.Cross(boneUp.normalizeToNew(), rotLocalZ).normalize();
-      const rotLocalY = Vector3.Cross(rotLocalZ, rotLocalX).normalize();
-
+      // Normalize against local space of bone
+      // https://stackoverflow.com/questions/22010632/one-vector3-related-to-a-plane-copy-it-to-another-plane
+      const rotLocalY = boneForward.normalizeToNew();
+      const rotLocalZ = boneUp.normalizeToNew().negateInPlace();
+      const rotLocalX = Vector3.Cross(rotLocalY, rotLocalZ).normalize();
       const rotLocalMatrix = Matrix.FromValues(
         rotLocalX._x, rotLocalY._x, rotLocalZ._x, 0.0,
         rotLocalX._y, rotLocalY._y, rotLocalZ._y, 0.0,
         rotLocalX._z, rotLocalY._z, rotLocalZ._z, 0.0,
         0.0, 0.0, 0.0, 1.0
-      ).transpose();
-      const rotationLocal = Quaternion.FromRotationMatrix(rotLocalMatrix).conjugateInPlace();
-
-      const rotZ = target.normalizeToNew();
-      const rotX = Vector3.Cross((targetUp || boneUp).normalizeToNew(), rotZ).normalize();
-      const rotY = Vector3.Cross(rotZ, rotX).normalize();
+      ).transpose().invert();
+      Vector3.TransformNormalToRef(rotX, rotLocalMatrix, rotX);
+      Vector3.TransformNormalToRef(rotY, rotLocalMatrix, rotY);
+      Vector3.TransformNormalToRef(rotZ, rotLocalMatrix, rotZ);
 
       const rotMatrix = Matrix.FromValues(
         rotX._x, rotY._x, rotZ._x, 0.0,
@@ -204,17 +202,15 @@ export class Capturer {
 
       const numBones = bone.boneNames.length;
       const rotation = Quaternion.FromRotationMatrix(rotMatrix);
-      // debugAxesTool.update({ name: 'rotX', boneName: 'Neck', direction: rotX.scale(5), color: Color3.Purple() });
-      // debugAxesTool.update({ name: 'rotY', boneName: 'Neck', direction: rotY.scale(5), color: Color3.Teal() });
-      // debugAxesTool.update({ name: 'rotZ', boneName: 'Neck', direction: rotZ.scale(5), color: Color3.Purple() });
-      // debugAxesTool.update({ name: 'rotLocalX', boneName: 'Neck', direction: rotLocalX.scale(5), color: Color3.Teal() });
-      // debugAxesTool.update({ name: 'rotLocalY', boneName: 'Neck', direction: rotLocalY.scale(5), color: Color3.Teal() });
-      // debugAxesTool.update({ name: 'rotLocalZ', boneName: 'Neck', direction: rotLocalZ.scale(5), color: Color3.Teal() });
-      // debugAxesTool.update({ name: 'boneForward', boneName: 'Neck', direction: boneForward, color: Color3.Green() });
-      // debugAxesTool.update({ name: 'boneUp', boneName: 'Neck', direction: boneUp, color: Color3.Red() });
-      // debugAxesTool.update({ name: 'target', boneName: 'Neck', direction: target, color: Color3.Yellow() });
-      // targetUp && debugAxesTool.update({ name: 'targetUp', boneName: 'Neck', direction: targetUp, color: Color3.Black() });
-      rotation.multiplyInPlace(rotationLocal);
+
+      // const debugBoneName = bone.boneNames[bone.boneNames.length - 1];
+      // debugAxesTool.update({ name: 'worldForward' + debugBoneName, boneName: debugBoneName, direction: worldForward, color: Color3.Green() });
+      // debugAxesTool.update({ name: 'worldUp' + debugBoneName, boneName: debugBoneName, direction: worldUp, color: Color3.Red() });
+      // debugAxesTool.update({ name: 'targetNormalized' + debugBoneName, boneName: debugBoneName, direction: rotZ, color: Color3.Yellow() });
+
+      // Old way of normalizing local space
+      // const rotationLocal = Quaternion.FromRotationMatrix(rotLocalMatrix).conjugateInPlace();
+      // rotation.multiplyInPlace(rotationLocal);
 
       const rotationScaled = numBones === 1 ? rotation : rotation.scale(1 / numBones);
 

@@ -45,7 +45,7 @@ const Game = (props: {
             <Provider store={store}>
               <hemisphericLight name='lightHemi' intensity={1} direction={Vector3.Up()} />
               <pointLight name='lightPoint' position={new Vector3(80, 100, 100)} specular={Color3.Black()} diffuse={new Color3(255 / 255, 240 / 255, 221 / 255)} />
-              <Player key='playerSelf' name='playerSelf' playerReady={playerCallback} bodySubscription={faceSubscription} />
+              <Player key='playerSelf' name='playerSelf' playerReady={playerCallback} bodySubscription={faceSubscription} debugSkeleton />
               <Camera player={player} cameraReady={cameraCallback} />
               <City groundReady={groundCallback} />
               {/* <box name='ground' width={100} depth={100} height={1} checkCollisions /> */}

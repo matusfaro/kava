@@ -84,7 +84,6 @@ export const DebugAxis = (props: {
       name={name}
       points={[start, end]}
       color={update.color}
-      updatable
     />
   );
 };
