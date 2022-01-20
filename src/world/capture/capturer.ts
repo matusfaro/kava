@@ -1,20 +1,23 @@
-import { Matrix, Quaternion, Vector3 } from "@babylonjs/core";
+import { Color3, Matrix, Quaternion, Vector3 } from "@babylonjs/core";
 import { Results } from "@mediapipe/holistic";
+import { debugAxesTool } from "../DebugAxes";
 import { SkeletonUpdate } from "./BodyCapture";
 import { FaceChin, FaceEyeLeft, FaceEyeRight } from "./faceConst";
 
-const scaleMultiplier = 0.2;
+const ScaleMultiplier = 0.2;
+const VisibilityThreshold = -1;
+const BoneDebugAxesEnabled = false;
 
 type BoneDefinition = [
-  // Unit vector defining bone forward direction from local space
-  boneForward: Vector3,
   // Unit vector defining bone up direction from local space
   boneUp: Vector3,
+  // Unit vector defining bone backward direction from local space
+  boneBackward: Vector3,
   // Vector pointing to the end of the bone from local space including magnitude
   target: Vector3,
-  // Optional unit vector pointing to the up direction of the target
+  // Optional unit vector pointing to the backward direction of the target
   // causing a twist of the bone. If omitted, there is no twist.
-  targetUp: Vector3 | undefined,
+  targetBackward: Vector3 | undefined,
 ] | undefined;
 interface BoneMapping {
   boneNames: Array<string>;
@@ -26,9 +29,6 @@ interface BoneMapping {
   children?: Array<BoneMapping>;
 }
 
-const worldUp = Vector3.Up();
-const worldForward = Vector3.Forward();
-
 const boneHands: BoneMapping[] = [true, false].map(isLeft => ({
   boneNames: [isLeft ? 'Hand.L' : 'Hand.R'],
   getDef: (r, rotationParent, defParent) => {
@@ -38,16 +38,17 @@ const boneHands: BoneMapping[] = [true, false].map(isLeft => ({
     const fingerLittle = getPoseLandmark(r, isLeft ? 17 : 18);
     if (!elbow || !wrist || !fingerIndex || !fingerLittle) return undefined;
 
-    const boneForward = wrist.subtract(elbow).normalize();
-    const boneUp = defParent?.[1].normalizeToNew() || worldUp;
+    const boneUp = wrist.subtract(elbow).normalize();
+    const boneBackward = defParent?.[1].normalizeToNew() || Vector3.Up();
 
     const handCenter = Vector3.Center(fingerIndex, fingerLittle);
-    const target = handCenter.subtract(wrist).normalize();
-    const targetUp = Vector3.Cross(
-      target,
-      fingerIndex.subtract(fingerLittle).normalize());
+    const target = handCenter.subtract(wrist);
+    const fingers = (isLeft
+      ? fingerLittle.subtract(fingerIndex)
+      : fingerIndex.subtract(fingerLittle)).normalize()
+    const targetBackward = Vector3.Cross(target.normalizeToNew(), fingers);
 
-    return [boneForward, boneUp, target, targetUp];
+    return [boneUp, boneBackward, target, targetBackward];
   },
   children: [],
 }));
@@ -58,11 +59,11 @@ const boneLowerArms: BoneMapping[] = [true, false].map(isLeft => ({
     const elbow = getPoseLandmark(r, isLeft ? 13 : 14);
     const wrist = getPoseLandmark(r, isLeft ? 15 : 16);
     if (!defParent || !shoulder || !elbow || !wrist) return undefined;
-    const boneForward = elbow.subtract(shoulder).normalize();
-    const boneUp = defParent?.[1].normalizeToNew() || worldUp;
-    const target = wrist.subtract(elbow).normalize();
+    const boneUp = elbow.subtract(shoulder).normalize();
+    const boneBackward = defParent?.[1].normalizeToNew() || Vector3.Up();
+    const target = wrist.subtract(elbow);
 
-    return [boneForward, boneUp, target, undefined];
+    return [boneUp, boneBackward, target, undefined];
   },
   children: [boneHands[isLeft ? 0 : 1]],
 }));
@@ -73,11 +74,11 @@ const boneUpperArms: BoneMapping[] = [true, false].map(isLeft => ({
     const shoulder = getPoseLandmark(r, isLeft ? 11 : 12);
     const elbow = getPoseLandmark(r, isLeft ? 13 : 14);
     if (!rotationParent || !shoulder || !shoulderOther || !elbow) return undefined;
-    const boneForward = shoulder.subtract(shoulderOther).normalize();
-    const boneUp = defParent?.[0].normalizeToNew() || worldUp;
-    const target = elbow.subtract(shoulder).normalize();
+    const boneUp = shoulder.subtract(shoulderOther).normalize();
+    const boneBackward = defParent?.[0].normalizeToNew() || Vector3.Forward();
+    const target = elbow.subtract(shoulder);
 
-    return [boneForward, boneUp, target, undefined];
+    return [boneUp, boneBackward, target, undefined];
   },
   children: [boneLowerArms[isLeft ? 0 : 1]],
 }));
@@ -90,15 +91,15 @@ const boneHead: BoneMapping = {
     const eyeRight = getFaceLandmark(r, FaceEyeRight);
     const chin = getFaceLandmark(r, FaceChin);
     if (!shoulderLeft || !shoulderRight || !eyeLeft || !eyeRight || !chin) return undefined;
-    const boneForward = defParent?.[2] || worldUp;
-    const boneUp = defParent?.[1] || worldForward; // Is this right?
+    const boneUp = defParent?.[2] || Vector3.Up();
+    const boneBackward = defParent?.[1] || Vector3.Forward(); // Is this right?
 
     const eyeCenter = Vector3.Center(eyeLeft, eyeRight);
-    const faceUp = eyeCenter.subtract(chin).normalize();
+    const target = eyeCenter.subtract(chin);
     const eyeLine = eyeRight.subtract(eyeLeft).normalize();
-    const faceBack = Vector3.Cross(faceUp, eyeLine).normalize();
+    const targetBackward = Vector3.Cross(eyeLine, target).normalize();
 
-    return [boneForward, boneUp, faceUp, faceBack];
+    return [boneUp, boneBackward, target, targetBackward];
   },
   children: [],
 };
@@ -110,15 +111,15 @@ const boneNeck: BoneMapping = {
     const eyeLeft = getFaceLandmark(r, FaceEyeLeft);
     const eyeRight = getFaceLandmark(r, FaceEyeRight);
     if (!shoulderLeft || !shoulderRight || !eyeLeft || !eyeRight) return undefined;
-    const boneForward = defParent?.[2]?.normalizeToNew() || worldUp;
+    const boneUp = defParent?.[2]?.normalizeToNew() || Vector3.Up();
     const shoulder = shoulderRight.subtract(shoulderLeft).normalize();
-    const boneUp = Vector3.Cross(shoulder, boneForward).normalize();
+    const boneBackward = Vector3.Cross(shoulder, boneUp).normalize();
 
     const eyeCenter = Vector3.Center(eyeLeft, eyeRight);
     const shoulderCenter = Vector3.Center(shoulderLeft, shoulderRight);
     const target = eyeCenter.subtract(shoulderCenter);
 
-    return [boneForward, boneUp, target, undefined];
+    return [boneUp, boneBackward, target, undefined];
   },
   children: [boneHead],
 };
@@ -135,12 +136,12 @@ const boneSpine: BoneMapping = {
     const shoulderCenter = Vector3.Center(shoulderLeft, shoulderRight);
     const hipCenter = Vector3.Center(hipLeft, hipRight);
 
-    const boneForward = worldUp;
-    const boneUp = Vector3.Cross(hip, boneForward).normalize();
-    const target = shoulderCenter.subtract(hipCenter).normalize();
-    const targetUp = Vector3.Cross(target, shoulder).normalize().negate();
+    const boneUp = Vector3.Up();
+    const boneBackward = Vector3.Cross(hip, boneUp).normalize();
+    const target = shoulderCenter.subtract(hipCenter);
+    const targetBackward = Vector3.Cross(shoulder, target.normalizeToNew()).normalize();
 
-    return [boneForward, boneUp, target, targetUp];
+    return [boneUp, boneBackward, target, targetBackward];
   },
   children: [
     boneNeck,
@@ -167,46 +168,54 @@ export class Capturer {
     const def = bone.getDef(r, rotationParent, defParent);
 
     if (def !== undefined) {
-      const [boneForward, boneUp, target, targetUp] = def;
+      const [boneUp, boneBackward, target, targetBackward] = def;
+      boneUp.normalize();
+      boneBackward.normalize();
+      targetBackward?.normalize();
 
-      // TODO rotate using this: https://stackoverflow.com/a/52551983
+      // Matrix.LookAtLH
+      // https://stackoverflow.com/a/52551983
       // https://stackoverflow.com/questions/349050/calculating-a-lookat-matrix
-      // Based on Matrix.LookAtLH
-      const rotZ = target.normalizeToNew();
-      const rotX = Vector3.Cross((targetUp || boneUp).normalizeToNew(), rotZ).normalize();
-      const rotY = Vector3.Cross(rotZ, rotX).normalize();
+      const rotUp = target.normalizeToNew();
+      const rotRight = Vector3.Cross(targetBackward || boneBackward, rotUp).normalize();
+      const rotForward = Vector3.Cross(rotRight, rotUp).normalize();
 
       // Normalize against local space of bone
       // https://stackoverflow.com/questions/22010632/one-vector3-related-to-a-plane-copy-it-to-another-plane
-      const rotLocalY = boneForward.normalizeToNew();
-      const rotLocalZ = boneUp.normalizeToNew().negateInPlace();
-      const rotLocalX = Vector3.Cross(rotLocalY, rotLocalZ).normalize();
+      const rotNormalUp = boneUp;
+      const rotNormalRight = Vector3.Cross(boneBackward, rotNormalUp).normalize();
+      const rotNormalForward = Vector3.Cross(rotNormalRight, rotNormalUp).normalize();
       const rotLocalMatrix = Matrix.FromValues(
-        rotLocalX._x, rotLocalY._x, rotLocalZ._x, 0.0,
-        rotLocalX._y, rotLocalY._y, rotLocalZ._y, 0.0,
-        rotLocalX._z, rotLocalY._z, rotLocalZ._z, 0.0,
+        rotNormalRight._x, rotNormalUp._x, rotNormalForward._x, 0.0,
+        rotNormalRight._y, rotNormalUp._y, rotNormalForward._y, 0.0,
+        rotNormalRight._z, rotNormalUp._z, rotNormalForward._z, 0.0,
         0.0, 0.0, 0.0, 1.0
-      ).transpose().invert();
-      Vector3.TransformNormalToRef(rotX, rotLocalMatrix, rotX);
-      Vector3.TransformNormalToRef(rotY, rotLocalMatrix, rotY);
-      Vector3.TransformNormalToRef(rotZ, rotLocalMatrix, rotZ);
+      ).transpose().invert().getRotationMatrix();
+      Vector3.TransformNormalToRef(rotRight, rotLocalMatrix, rotRight);
+      Vector3.TransformNormalToRef(rotUp, rotLocalMatrix, rotUp);
+      Vector3.TransformNormalToRef(rotForward, rotLocalMatrix, rotForward);
 
       const rotMatrix = Matrix.FromValues(
-        rotX._x, rotY._x, rotZ._x, 0.0,
-        rotX._y, rotY._y, rotZ._y, 0.0,
-        rotX._z, rotY._z, rotZ._z, 0.0,
+        rotRight._x, rotUp._x, rotForward._x, 0.0,
+        rotRight._y, rotUp._y, rotForward._y, 0.0,
+        rotRight._z, rotUp._z, rotForward._z, 0.0,
         0.0, 0.0, 0.0, 1.0
-      ).transpose();
+      ).transpose().getRotationMatrix();
 
-      const boneLength = target.length() * scaleMultiplier;
+      const boneLength = target.length() * ScaleMultiplier;
 
       const numBones = bone.boneNames.length;
       const rotation = Quaternion.FromRotationMatrix(rotMatrix);
 
-      // const debugBoneName = bone.boneNames[bone.boneNames.length - 1];
-      // debugAxesTool.update({ name: 'worldForward' + debugBoneName, boneName: debugBoneName, direction: worldForward, color: Color3.Green() });
-      // debugAxesTool.update({ name: 'worldUp' + debugBoneName, boneName: debugBoneName, direction: worldUp, color: Color3.Red() });
-      // debugAxesTool.update({ name: 'targetNormalized' + debugBoneName, boneName: debugBoneName, direction: rotZ, color: Color3.Yellow() });
+      if (BoneDebugAxesEnabled) {
+        const debugBoneName = bone.boneNames[bone.boneNames.length - 1];
+        debugAxesTool.update({ name: 'worldForward' + debugBoneName, boneName: debugBoneName, direction: Vector3.Forward(), color: Color3.Green() });
+        debugAxesTool.update({ name: 'worldUp' + debugBoneName, boneName: debugBoneName, direction: Vector3.Up(), color: Color3.Red() });
+        debugAxesTool.update({ name: 'worldRight' + debugBoneName, boneName: debugBoneName, direction: Vector3.Right(), color: Color3.Blue() });
+        debugAxesTool.update({ name: 'rotForward' + debugBoneName, boneName: debugBoneName, direction: rotForward, color: Color3.FromInts(0, 153, 0 /* Dark green */) });
+        debugAxesTool.update({ name: 'rotUp' + debugBoneName, boneName: debugBoneName, direction: rotUp, color: Color3.FromInts(153, 0, 0 /* Dark red */) });
+        debugAxesTool.update({ name: 'rotRight' + debugBoneName, boneName: debugBoneName, direction: rotRight, color: Color3.FromInts(0, 0, 153 /* Dark blue */) });
+      }
 
       // Old way of normalizing local space
       // const rotationLocal = Quaternion.FromRotationMatrix(rotLocalMatrix).conjugateInPlace();
@@ -217,7 +226,7 @@ export class Capturer {
       changed = true;
       bone.boneNames.forEach(boneName => updates.push({
         n: boneName,
-        // s: boneLength, TODO reenable
+        s: boneLength,
         q: rotationScaled,
       }));
     }
@@ -230,25 +239,14 @@ export class Capturer {
   }
 }
 
-// TODO For fun, figure out a better way to define conditional return type here
-// Idea is to have the return value as always defined if both args are alwasy defined
-const calcCenter = <V1 extends Vector3 | undefined, V2 extends Vector3 | undefined>(left?: V1, right?: V2): V1 extends undefined
-  ? Vector3 | undefined
-  : (V2 extends undefined
-    ? Vector3 | undefined
-    : Vector3) =>
-  (left === undefined || right === undefined) ? undefined as any : new Vector3(
-    (right.x + left.x) / 2,
-    (right.y + left.y) / 2,
-    (right.z + left.z) / 2,
-  );
-
 const getPoseLandmark = (holistic: Results, index: number): Vector3 | undefined => {
   const landmark = holistic.poseLandmarks?.[index];
-  return landmark === undefined ? undefined : new Vector3(landmark.x, 1 - landmark.y, landmark.z);
+  return !landmark || ((landmark?.visibility || 0) < VisibilityThreshold)
+    ? undefined : new Vector3(landmark.x, 1 - landmark.y, landmark.z);
 }
 
 const getFaceLandmark = (holistic: Results, index: number): Vector3 | undefined => {
   const landmark = holistic.faceLandmarks?.[index];
-  return landmark === undefined ? undefined : new Vector3(landmark.x, 1 - landmark.y, landmark.z);
+  return !landmark || ((landmark.visibility || 0) < VisibilityThreshold)
+    ? undefined : new Vector3(landmark.x, 1 - landmark.y, landmark.z);
 }
