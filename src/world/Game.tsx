@@ -3,6 +3,7 @@ import '@babylonjs/loaders/glTF';
 import React, { Suspense, useCallback, useMemo, useState } from 'react';
 import { Engine, Scene } from 'react-babylonjs';
 import { Provider } from 'react-redux';
+import { GameOptions } from '../App';
 import { CharacterController } from '../CharacterController';
 import Subscription from '../util/subscriptionUtil';
 import { Camera } from './Camera';
@@ -19,8 +20,8 @@ import { store } from './store/store';
 
 const Game = (props: {
   enableVideo?: boolean;
-  debugRef: React.RefObject<boolean>;
   webcamCanvasRef: React.RefObject<HTMLCanvasElement>;
+  options: GameOptions;
 }) => {
   const faceSubscription: Subscription<Body> = useMemo(() => new Subscription(), []);
 
@@ -45,7 +46,7 @@ const Game = (props: {
             <Provider store={store}>
               <hemisphericLight name='lightHemi' intensity={1} direction={Vector3.Up()} />
               <pointLight name='lightPoint' position={new Vector3(80, 100, 100)} specular={Color3.Black()} diffuse={new Color3(255 / 255, 240 / 255, 221 / 255)} />
-              <Player key='playerSelf' name='playerSelf' playerReady={playerCallback} bodySubscription={faceSubscription} debugSkeleton />
+              <Player key='playerSelf' name='playerSelf' playerReady={playerCallback} bodySubscription={faceSubscription} options={props.options} />
               <Camera player={player} cameraReady={cameraCallback} />
               <City groundReady={groundCallback} />
               {/* <box name='ground' width={100} depth={100} height={1} checkCollisions /> */}
@@ -53,8 +54,8 @@ const Game = (props: {
                 <Controller player={player} camera={camera} controllerReady={controllerCallback} />
               )}
               {!!player && !!controller && (<Network player={player} controller={controller} bodySubscription={faceSubscription} />)}
-              {!!player && !!video && (<BodyCapture player={player} videoElement={video} bodySubscription={faceSubscription} debugRef={props.debugRef} webcamCanvasRef={props.webcamCanvasRef} />)}
-              <Friends />
+              {!!player && !!video && (<BodyCapture player={player} videoElement={video} bodySubscription={faceSubscription} options={props.options} webcamCanvasRef={props.webcamCanvasRef} />)}
+              <Friends options={props.options} />
               <DebugAxes />
             </Provider>
           </Suspense>

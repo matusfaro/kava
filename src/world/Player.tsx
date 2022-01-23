@@ -1,13 +1,11 @@
 import { Color3, DynamicTexture, Mesh, Quaternion, Scene, SceneLoader, Skeleton, SkeletonViewer, StandardMaterial, Vector3, VertexBuffer, VertexData } from '@babylonjs/core';
 import { useEffect, useRef } from 'react';
 import { useScene } from 'react-babylonjs';
+import { GameOptions } from '../App';
 import Subscription from '../util/subscriptionUtil';
 import { Body, Face, FaceCaptureDimensions, SkeletonUpdate, Vector } from './capture/BodyCapture';
 import { FaceMeshIndices } from './capture/faceConst';
 
-const FaceEnabled = true;
-const BoneRotationEnabled = true;
-const BoneScalingEnabled = false;
 export const HeadBoneName = 'Head';
 
 const updateFace = (scene: Scene, faceRef: React.MutableRefObject<{ face: Mesh, texture: DynamicTexture } | undefined>, player: Mesh, skeleton: Skeleton, face: Face) => {
@@ -60,16 +58,16 @@ const updateFace = (scene: Scene, faceRef: React.MutableRefObject<{ face: Mesh, 
 
 export const NeckPositionBase: Vector = { x: 0, y: 0, z: 0 };
 export const NeckBoneName = 'Neck';
-const updateSkeleton = (updates: SkeletonUpdate, skeleton: Skeleton) => {
+const updateSkeleton = (updates: SkeletonUpdate, skeleton: Skeleton, options: GameOptions) => {
   for (const update of updates) {
     const boneIndex = skeleton.getBoneIndexByName(update.n);
     if (boneIndex === -1) continue;
     const bone = skeleton.bones[boneIndex];
     if (!bone) continue;
-    BoneScalingEnabled && update.p && bone.setPosition(new Vector3(update.p.x, update.p.y, update.p.z));
-    BoneRotationEnabled && update.r && bone.setRotation(new Vector3(update.r.x, update.r.y, update.r.z));
-    BoneRotationEnabled && update.q && bone.setRotationQuaternion(new Quaternion(update.q.x, update.q.y, update.q.z, update.q.w));
-    BoneScalingEnabled && update.s !== undefined && bone.setScale(new Vector3(update.s, update.s, update.s));
+    options.skeletonScaling.current && update.p && bone.setPosition(new Vector3(update.p.x, update.p.y, update.p.z));
+    options.skeletonScaling.current && update.s !== undefined && bone.setScale(new Vector3(update.s, update.s, update.s));
+    options.skeletonRotations.current && update.r && bone.setRotation(new Vector3(update.r.x, update.r.y, update.r.z));
+    options.skeletonRotations.current && update.q && bone.setRotationQuaternion(new Quaternion(update.q.x, update.q.y, update.q.z, update.q.w));
   }
 };
 
@@ -78,7 +76,7 @@ export const Player = (props: {
   playerReady: (player: Mesh) => void;
   bodySubscription?: Subscription<Body>;
   faceSubscription?: Subscription<Face>;
-  debugSkeleton?: boolean;
+  options: GameOptions;
 }) => {
   const scene = useScene();
   const faceModelRef = useRef<{ face: Mesh, texture: DynamicTexture }>();
@@ -87,7 +85,7 @@ export const Player = (props: {
       let player = meshes[0] as Mesh;
       player.name = props.name;
       let skeleton = skeletons[0];
-      if (props.debugSkeleton) {
+      if (props.options.boneDebug.current) {
         const skeletonViewer = new SkeletonViewer(skeleton, player, scene!, false, 3, {
           displayMode: SkeletonViewer.DISPLAY_SPHERE_AND_SPURS
         });
@@ -111,8 +109,8 @@ export const Player = (props: {
 
       const bodyUnsubscribe = props.bodySubscription?.subscribe(body => {
         if (!scene) return;
-        FaceEnabled && !!body.face && updateFace(scene, faceModelRef, player, skeleton, body.face);
-        updateSkeleton(body.skeleton, skeleton);
+        props.options.renderFace.current && !!body.face && updateFace(scene, faceModelRef, player, skeleton, body.face);
+        updateSkeleton(body.skeleton, skeleton, props.options);
       });
 
       const faceUnsubscribe = props.faceSubscription?.subscribe(face =>

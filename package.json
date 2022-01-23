@@ -6,7 +6,7 @@
     "@babylonjs/core": "^4.2.0",
     "@babylonjs/gui": "^4.2.0",
     "@babylonjs/loaders": "^4.2.0",
-    "@mediapipe/camera_utils": "^0.3.1632432234",
+    "@mediapipe/camera_utils": "0.3.1640029074",
     "@mediapipe/control_utils": "^0.6.1629159505",
     "@mediapipe/drawing_utils": "^0.3.1620248257",
     "@mediapipe/holistic": "^0.5.1635989137",

@@ -3,10 +3,12 @@ import { Camera } from '@mediapipe/camera_utils';
 import drawingUtils from '@mediapipe/drawing_utils';
 import { FACEMESH_FACE_OVAL, FACEMESH_LEFT_EYE, FACEMESH_LEFT_EYEBROW, FACEMESH_LIPS, FACEMESH_RIGHT_EYE, FACEMESH_RIGHT_EYEBROW, FACEMESH_TESSELATION, HAND_CONNECTIONS, Holistic, NormalizedLandmark, POSE_CONNECTIONS, POSE_LANDMARKS, POSE_LANDMARKS_LEFT, POSE_LANDMARKS_RIGHT, Results } from '@mediapipe/holistic';
 import { useEffect } from 'react';
+import { GameOptions } from '../../App';
 import Subscription from '../../util/subscriptionUtil';
 import { Capturer } from './capturer';
 import { captureFace } from './face';
 
+export const Qps = 30;
 export const FaceCaptureEnabled = false;
 export const FaceCaptureDimensions = { width: 1280, height: 720 };
 
@@ -37,12 +39,12 @@ export interface Face {
   },
 }
 
-const captureToBody = (results: Results, capturer: Capturer): Body | undefined => {
+const captureToBody = (results: Results, capturer: Capturer, options: GameOptions): Body | undefined => {
   const body: Body = { skeleton: [] };
 
   var changed = false;
-  if (FaceCaptureEnabled) changed = captureFace(results, body) || changed;
-  changed = capturer.capture(results, body.skeleton) || changed;
+  if (options.renderFace.current) changed = captureFace(results, body) || changed;
+  if (options.renderBones.current) changed = capturer.capture(results, body.skeleton, options) || changed;
 
   return changed ? body : undefined;
 }
@@ -69,8 +71,8 @@ const connect = (
 }
 const debugFace = false;
 const debugHands = false;
-const captureDebug = (results: Results, debugRef?: React.RefObject<boolean>, webcamCanvasRef?: React.RefObject<HTMLCanvasElement>) => {
-  if (!debugRef?.current || !webcamCanvasRef?.current) return;
+const previewWebcam = (results: Results, options: GameOptions, webcamCanvasRef?: React.RefObject<HTMLCanvasElement>) => {
+  if (!options.preview.current || !webcamCanvasRef?.current) return;
 
   const canvasElement = webcamCanvasRef.current;
   if (!canvasElement) return;
@@ -181,8 +183,8 @@ const BodyCapture = (props: {
   player: Mesh;
   videoElement: HTMLVideoElement;
   bodySubscription: Subscription<Body>;
-  debugRef: React.RefObject<boolean>;
   webcamCanvasRef: React.RefObject<HTMLCanvasElement>;
+  options: GameOptions;
 }) => {
   useEffect(() => {
     const mediapipe = new Holistic({
@@ -197,12 +199,12 @@ const BodyCapture = (props: {
       enableFaceGeometry: false,
     });
 
-    const capturer = new Capturer();
+    const capturer = new Capturer(props.options);
     mediapipe.onResults(results => {
-      const body = captureToBody(results, capturer);
+      const body = captureToBody(results, capturer, props.options);
       !!body && props.bodySubscription.notify(body);
-      captureDebug(results, props.debugRef, props.webcamCanvasRef)
-      return new Promise(resolve => setTimeout(resolve, 1000 / 3))
+      previewWebcam(results, props.options, props.webcamCanvasRef)
+      return new Promise(resolve => setTimeout(resolve, 1000 / Qps))
     });
 
     const camera = new Camera(props.videoElement, {

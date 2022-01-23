@@ -1,16 +1,19 @@
 import { Mesh, Vector3 } from '@babylonjs/core';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { GameOptions } from '../App';
 import Subscription from '../util/subscriptionUtil';
 import { Face } from './capture/BodyCapture';
 import { useAppSelector } from './hooks';
 import { HeadBoneName, Player } from './Player';
 
-export const Friends = () => {
+export const Friends = (props: {
+  options: GameOptions;
+}) => {
   const friends = useAppSelector(state => state.friends.friends);
   return (
     <>
       {Object.keys(friends).map(friendId => (
-        <Friend key={friendId} friendId={friendId} />
+        <Friend key={friendId} friendId={friendId} options={props.options} />
       ))}
     </>
   );
@@ -18,6 +21,7 @@ export const Friends = () => {
 
 export const Friend = (props: {
   friendId: string;
+  options: GameOptions;
 }) => {
   const [player, setPlayer] = useState<Mesh>();
   const playerCallback = useCallback(setPlayer, [setPlayer]);
@@ -48,7 +52,7 @@ export const Friend = (props: {
 
   return (
     <>
-      <Player name={props.friendId} playerReady={playerCallback} faceSubscription={faceSubscription} />
+      <Player name={props.friendId} playerReady={playerCallback} faceSubscription={faceSubscription} options={props.options} />
       {!!player && (
         <mesh
           fromInstance={player}

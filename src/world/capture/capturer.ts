@@ -1,12 +1,12 @@
 import { Color3, Matrix, Quaternion, Vector3 } from "@babylonjs/core";
 import { Results } from "@mediapipe/holistic";
+import { GameOptions } from "../../App";
 import { debugAxesTool } from "../DebugAxes";
 import { SkeletonUpdate } from "./BodyCapture";
 import { FaceChin, FaceEyeLeft, FaceEyeRight } from "./faceConst";
 
 const ScaleMultiplier = 0.2;
 const VisibilityThreshold = -1;
-const BoneDebugAxesEnabled = false;
 
 type BoneDefinition = [
   // Unit vector defining bone up direction from local space
@@ -23,7 +23,6 @@ interface BoneMapping {
   boneNames: Array<string>;
   getDef: (
     r: Results,
-    rotationParent: Quaternion,
     defParent?: BoneDefinition,
   ) => (BoneDefinition | undefined);
   children?: Array<BoneMapping>;
@@ -31,7 +30,7 @@ interface BoneMapping {
 
 const boneHands: BoneMapping[] = [true, false].map(isLeft => ({
   boneNames: [isLeft ? 'Hand.L' : 'Hand.R'],
-  getDef: (r, rotationParent, defParent) => {
+  getDef: (r, defParent) => {
     const elbow = getPoseLandmark(r, isLeft ? 13 : 14);
     const wrist = getPoseLandmark(r, isLeft ? 15 : 16);
     const fingerIndex = getPoseLandmark(r, isLeft ? 19 : 20);
@@ -54,13 +53,14 @@ const boneHands: BoneMapping[] = [true, false].map(isLeft => ({
 }));
 const boneLowerArms: BoneMapping[] = [true, false].map(isLeft => ({
   boneNames: [isLeft ? 'LowerArm.L' : 'LowerArm.R'],
-  getDef: (r, rotationParent, defParent) => {
+  getDef: (r, defParent) => {
     const shoulder = getPoseLandmark(r, isLeft ? 11 : 12);
     const elbow = getPoseLandmark(r, isLeft ? 13 : 14);
     const wrist = getPoseLandmark(r, isLeft ? 15 : 16);
-    if (!defParent || !shoulder || !elbow || !wrist) return undefined;
+    if (!shoulder || !elbow || !wrist) return undefined;
     const boneUp = elbow.subtract(shoulder).normalize();
-    const boneBackward = defParent?.[1].normalizeToNew() || Vector3.Up();
+    const boneBackward = defParent?.[1].normalizeToNew().negate() || Vector3.Up();
+    // const boneBackward = defParent?.[1].normalizeToNew() || Vector3.Down();
     const target = wrist.subtract(elbow);
 
     return [boneUp, boneBackward, target, undefined];
@@ -69,13 +69,14 @@ const boneLowerArms: BoneMapping[] = [true, false].map(isLeft => ({
 }));
 const boneUpperArms: BoneMapping[] = [true, false].map(isLeft => ({
   boneNames: [isLeft ? 'UpperArm.L' : 'UpperArm.R'],
-  getDef: (r, rotationParent, defParent) => {
+  getDef: (r, defParent) => {
     const shoulderOther = getPoseLandmark(r, isLeft ? 12 : 11);
     const shoulder = getPoseLandmark(r, isLeft ? 11 : 12);
     const elbow = getPoseLandmark(r, isLeft ? 13 : 14);
-    if (!rotationParent || !shoulder || !shoulderOther || !elbow) return undefined;
+    if (!shoulder || !shoulderOther || !elbow) return undefined;
     const boneUp = shoulder.subtract(shoulderOther).normalize();
-    const boneBackward = defParent?.[0].normalizeToNew() || Vector3.Forward();
+    const boneBackward = defParent?.[0].normalizeToNew() || Vector3.Up();
+    // const boneBackward = defParent?.[0].normalizeToNew().negateInPlace() || Vector3.Down();
     const target = elbow.subtract(shoulder);
 
     return [boneUp, boneBackward, target, undefined];
@@ -84,20 +85,27 @@ const boneUpperArms: BoneMapping[] = [true, false].map(isLeft => ({
 }));
 const boneHead: BoneMapping = {
   boneNames: ['Head'],
-  getDef: (r, parentRotation, defParent) => {
+  getDef: (r, defParent) => {
     const shoulderLeft = getPoseLandmark(r, 11);
     const shoulderRight = getPoseLandmark(r, 12);
     const eyeLeft = getFaceLandmark(r, FaceEyeLeft);
     const eyeRight = getFaceLandmark(r, FaceEyeRight);
     const chin = getFaceLandmark(r, FaceChin);
     if (!shoulderLeft || !shoulderRight || !eyeLeft || !eyeRight || !chin) return undefined;
-    const boneUp = defParent?.[2] || Vector3.Up();
-    const boneBackward = defParent?.[1] || Vector3.Forward(); // Is this right?
+    var boneUp, boneBackward;
+    if (!defParent) {
+      boneUp = Vector3.Up();
+      boneBackward = Vector3.Backward();
+    } else {
+      boneUp = defParent[2].normalizeToNew();
+      const boneRight = defParent[1].cross(boneUp);
+      boneBackward = boneUp.cross(boneRight);
+    }
 
     const eyeCenter = Vector3.Center(eyeLeft, eyeRight);
-    const target = eyeCenter.subtract(chin);
+    const target = eyeCenter.subtract(chin).normalize();
     const eyeLine = eyeRight.subtract(eyeLeft).normalize();
-    const targetBackward = Vector3.Cross(eyeLine, target).normalize();
+    const targetBackward = Vector3.Cross(target, eyeLine).normalize();
 
     return [boneUp, boneBackward, target, targetBackward];
   },
@@ -105,7 +113,7 @@ const boneHead: BoneMapping = {
 };
 const boneNeck: BoneMapping = {
   boneNames: ['Neck'],
-  getDef: (r, parentRotation, defParent) => {
+  getDef: (r, defParent) => {
     const shoulderLeft = getPoseLandmark(r, 11);
     const shoulderRight = getPoseLandmark(r, 12);
     const eyeLeft = getFaceLandmark(r, FaceEyeLeft);
@@ -125,7 +133,7 @@ const boneNeck: BoneMapping = {
 };
 const boneSpine: BoneMapping = {
   boneNames: ['Spine', 'Chest', 'UpperChest'],
-  getDef: (r, parentRotation, defParent) => {
+  getDef: (r, defParent) => {
     const hipLeft = getPoseLandmark(r, 23);
     const hipRight = getPoseLandmark(r, 24);
     const shoulderLeft = getPoseLandmark(r, 11);
@@ -149,23 +157,32 @@ const boneSpine: BoneMapping = {
   ],
 };
 
-export class Capturer {
-  rotations: { [boneName: string]: Quaternion } = {};
+const rootBone = boneSpine;
 
-  capture(r: Results, updates: SkeletonUpdate): boolean {
+export const allBoneNames: string[] = [];
+const getAllBoneNames = (bone: BoneMapping) => {
+  bone.boneNames.forEach(boneName => allBoneNames.push(boneName));
+  bone.children?.forEach(bone => getAllBoneNames(bone));
+}
+getAllBoneNames(rootBone);
+
+export class Capturer {
+  options: GameOptions;
+
+  constructor(options: GameOptions) { this.options = options }
+
+  capture(r: Results, updates: SkeletonUpdate, options: GameOptions): boolean {
     return this.captureBonesRecursively(
       r,
       updates,
+      options,
       false,
-      boneSpine,
-      // boneNeck,
-      // boneUpperArms[0],
-      Quaternion.Identity());
+      rootBone);
   }
 
-  captureBonesRecursively(r: Results, updates: SkeletonUpdate, changed: boolean, bone: BoneMapping, rotationParent: Quaternion, defParent?: BoneDefinition): boolean {
-    const rotation = this.rotations[bone.boneNames[0]] || Quaternion.Identity();
-    const def = bone.getDef(r, rotationParent, defParent);
+  captureBonesRecursively(r: Results, updates: SkeletonUpdate, options: GameOptions, changed: boolean, bone: BoneMapping, defParent?: BoneDefinition): boolean {
+    const boneEnabled = !options.boneName.current || bone.boneNames.some(boneName => boneName === options.boneName.current);
+    const def = boneEnabled ? bone.getDef(r, defParent) : undefined;
 
     if (def !== undefined) {
       const [boneUp, boneBackward, target, targetBackward] = def;
@@ -207,32 +224,28 @@ export class Capturer {
       const numBones = bone.boneNames.length;
       const rotation = Quaternion.FromRotationMatrix(rotMatrix);
 
-      if (BoneDebugAxesEnabled) {
+      if (this.options.boneDebug.current) {
         const debugBoneName = bone.boneNames[bone.boneNames.length - 1];
-        debugAxesTool.update({ name: 'worldForward' + debugBoneName, boneName: debugBoneName, direction: Vector3.Forward(), color: Color3.Green() });
-        debugAxesTool.update({ name: 'worldUp' + debugBoneName, boneName: debugBoneName, direction: Vector3.Up(), color: Color3.Red() });
-        debugAxesTool.update({ name: 'worldRight' + debugBoneName, boneName: debugBoneName, direction: Vector3.Right(), color: Color3.Blue() });
-        debugAxesTool.update({ name: 'rotForward' + debugBoneName, boneName: debugBoneName, direction: rotForward, color: Color3.FromInts(0, 153, 0 /* Dark green */) });
-        debugAxesTool.update({ name: 'rotUp' + debugBoneName, boneName: debugBoneName, direction: rotUp, color: Color3.FromInts(153, 0, 0 /* Dark red */) });
-        debugAxesTool.update({ name: 'rotRight' + debugBoneName, boneName: debugBoneName, direction: rotRight, color: Color3.FromInts(0, 0, 153 /* Dark blue */) });
+        debugAxesTool.update({ name: 'worldForward' + debugBoneName, boneName: debugBoneName, direction: Vector3.Forward(), color: Color3.FromInts(0, 153, 0 /* Dark green */) });
+        debugAxesTool.update({ name: 'worldUp' + debugBoneName, boneName: debugBoneName, direction: Vector3.Up(), color: Color3.FromInts(153, 0, 0 /* Dark red */) });
+        debugAxesTool.update({ name: 'worldRight' + debugBoneName, boneName: debugBoneName, direction: Vector3.Right(), color: Color3.FromInts(0, 0, 153 /* Dark blue */) });
+        debugAxesTool.update({ name: 'rotForward' + debugBoneName, boneName: debugBoneName, direction: rotForward, color: Color3.Green() });
+        debugAxesTool.update({ name: 'rotUp' + debugBoneName, boneName: debugBoneName, direction: rotUp, color: Color3.Red() });
+        debugAxesTool.update({ name: 'rotRight' + debugBoneName, boneName: debugBoneName, direction: rotRight, color: Color3.Blue() });
       }
-
-      // Old way of normalizing local space
-      // const rotationLocal = Quaternion.FromRotationMatrix(rotLocalMatrix).conjugateInPlace();
-      // rotation.multiplyInPlace(rotationLocal);
 
       const rotationScaled = numBones === 1 ? rotation : rotation.scale(1 / numBones);
 
       changed = true;
       bone.boneNames.forEach(boneName => updates.push({
         n: boneName,
-        s: boneLength,
+        // s: boneLength, TODO fixup and re-enable scaling
         q: rotationScaled,
       }));
     }
 
     changed = bone.children?.map(childBone => this.captureBonesRecursively(
-      r, updates, changed, childBone, rotation, def))
+      r, updates, options, changed, childBone, def))
       .some(c => c) || changed;
 
     return changed;
