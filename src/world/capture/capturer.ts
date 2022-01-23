@@ -6,7 +6,7 @@ import { SkeletonUpdate } from "./BodyCapture";
 import { FaceChin, FaceEyeLeft, FaceEyeRight } from "./faceConst";
 
 const ScaleMultiplier = 0.2;
-const VisibilityThreshold = -1;
+export const VisibilityThreshold = -1;
 
 type BoneDefinition = [
   // Unit vector defining bone up direction from local space
@@ -93,10 +93,10 @@ const boneHead: BoneMapping = {
     var boneUp, boneBackward;
     if (!defParent) {
       boneUp = Vector3.Up();
-      boneBackward = Vector3.Backward();
+      boneBackward = Vector3.Forward();
     } else {
       boneUp = defParent[2].normalizeToNew();
-      const boneRight = defParent[1].cross(boneUp);
+      const boneRight = Vector3.Cross(boneUp, defParent[1]);
       boneBackward = boneUp.cross(boneRight);
     }
 
@@ -253,11 +253,11 @@ export class Capturer {
 const getPoseLandmark = (holistic: Results, index: number): Vector3 | undefined => {
   const landmark = holistic.poseLandmarks?.[index];
   return !landmark || ((landmark?.visibility || 0) < VisibilityThreshold)
-    ? undefined : new Vector3(landmark.x, 1 - landmark.y, landmark.z);
+    ? undefined : new Vector3(landmark.x, 1 - landmark.y, 1 - landmark.z);
 }
 
 const getFaceLandmark = (holistic: Results, index: number): Vector3 | undefined => {
   const landmark = holistic.faceLandmarks?.[index];
   return !landmark || ((landmark.visibility || 0) < VisibilityThreshold)
-    ? undefined : new Vector3(landmark.x, 1 - landmark.y, landmark.z);
+    ? undefined : new Vector3(landmark.x, 1 - landmark.y, 1 - landmark.z);
 }

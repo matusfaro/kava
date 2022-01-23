@@ -5,7 +5,7 @@ import { FACEMESH_FACE_OVAL, FACEMESH_LEFT_EYE, FACEMESH_LEFT_EYEBROW, FACEMESH_
 import { useEffect } from 'react';
 import { GameOptions } from '../../App';
 import Subscription from '../../util/subscriptionUtil';
-import { Capturer } from './capturer';
+import { Capturer, VisibilityThreshold } from './capturer';
 import { captureFace } from './face';
 
 export const Qps = 30;
@@ -108,17 +108,17 @@ const previewWebcam = (results: Results, options: GameOptions, webcamCanvasRef?:
     // Pose...
     drawingUtils.drawConnectors(
       canvasCtx, results.poseLandmarks, POSE_CONNECTIONS,
-      { color: 'white' });
+      { color: 'white', visibilityMin: VisibilityThreshold });
     drawingUtils.drawLandmarks(
       canvasCtx,
       Object.values(POSE_LANDMARKS_LEFT)
         .map(index => results.poseLandmarks[index]),
-      { color: 'white', fillColor: 'rgb(255,138,0)', radius: 1 });
+      { color: 'white', fillColor: 'rgb(255,138,0)', radius: 1, visibilityMin: VisibilityThreshold });
     drawingUtils.drawLandmarks(
       canvasCtx,
       Object.values(POSE_LANDMARKS_RIGHT)
         .map(index => results.poseLandmarks[index]),
-      { color: 'white', fillColor: 'rgb(0,217,231)', radius: 1 });
+      { color: 'white', fillColor: 'rgb(0,217,231)', radius: 1, visibilityMin: VisibilityThreshold });
   }
 
   // Hands...
@@ -126,11 +126,12 @@ const previewWebcam = (results: Results, options: GameOptions, webcamCanvasRef?:
     if (results.leftHandLandmarks) {
       drawingUtils.drawConnectors(
         canvasCtx, results.rightHandLandmarks, HAND_CONNECTIONS,
-        { color: 'white' });
+        { color: 'white', visibilityMin: VisibilityThreshold });
       drawingUtils.drawLandmarks(canvasCtx, results.rightHandLandmarks, {
         color: 'white',
         fillColor: 'rgb(0,217,231)',
         lineWidth: 2,
+        visibilityMin: VisibilityThreshold,
         radius: (data: drawingUtils.Data) => {
           return drawingUtils.lerp(data.from!.z!, -0.15, .1, 10, 1);
         }
@@ -139,11 +140,12 @@ const previewWebcam = (results: Results, options: GameOptions, webcamCanvasRef?:
     if (results.leftHandLandmarks) {
       drawingUtils.drawConnectors(
         canvasCtx, results.leftHandLandmarks, HAND_CONNECTIONS,
-        { color: 'white' });
+        { color: 'white', visibilityMin: VisibilityThreshold });
       drawingUtils.drawLandmarks(canvasCtx, results.leftHandLandmarks, {
         color: 'white',
         fillColor: 'rgb(255,138,0)',
         lineWidth: 2,
+        visibilityMin: VisibilityThreshold,
         radius: (data: drawingUtils.Data) => {
           return drawingUtils.lerp(data.from!.z!, -0.15, .1, 10, 1);
         }
@@ -155,25 +157,25 @@ const previewWebcam = (results: Results, options: GameOptions, webcamCanvasRef?:
   if (debugFace && results.faceLandmarks) {
     drawingUtils.drawConnectors(
       canvasCtx, results.faceLandmarks, FACEMESH_TESSELATION,
-      { color: '#C0C0C070', lineWidth: 1 });
+      { color: '#C0C0C070', lineWidth: 1, visibilityMin: VisibilityThreshold });
     drawingUtils.drawConnectors(
       canvasCtx, results.faceLandmarks, FACEMESH_RIGHT_EYE,
-      { color: 'rgb(0,217,231)' });
+      { color: 'rgb(0,217,231)', visibilityMin: VisibilityThreshold });
     drawingUtils.drawConnectors(
       canvasCtx, results.faceLandmarks, FACEMESH_RIGHT_EYEBROW,
-      { color: 'rgb(0,217,231)' });
+      { color: 'rgb(0,217,231)', visibilityMin: VisibilityThreshold });
     drawingUtils.drawConnectors(
       canvasCtx, results.faceLandmarks, FACEMESH_LEFT_EYE,
-      { color: 'rgb(255,138,0)' });
+      { color: 'rgb(255,138,0)', visibilityMin: VisibilityThreshold });
     drawingUtils.drawConnectors(
       canvasCtx, results.faceLandmarks, FACEMESH_LEFT_EYEBROW,
-      { color: 'rgb(255,138,0)' });
+      { color: 'rgb(255,138,0)', visibilityMin: VisibilityThreshold });
     drawingUtils.drawConnectors(
       canvasCtx, results.faceLandmarks, FACEMESH_FACE_OVAL,
-      { color: '#E0E0E0', lineWidth: 2 });
+      { color: '#E0E0E0', lineWidth: 2, visibilityMin: VisibilityThreshold });
     drawingUtils.drawConnectors(
       canvasCtx, results.faceLandmarks, FACEMESH_LIPS,
-      { color: '#E0E0E0', lineWidth: 2 });
+      { color: '#E0E0E0', lineWidth: 2, visibilityMin: VisibilityThreshold });
   }
 
   canvasCtx.restore();
