@@ -59,8 +59,7 @@ const boneLowerArms: BoneMapping[] = [true, false].map(isLeft => ({
     const wrist = getPoseLandmark(r, isLeft ? 15 : 16);
     if (!shoulder || !elbow || !wrist) return undefined;
     const boneUp = elbow.subtract(shoulder).normalize();
-    const boneBackward = defParent?.[1].normalizeToNew().negate() || Vector3.Up();
-    // const boneBackward = defParent?.[1].normalizeToNew() || Vector3.Down();
+    const boneBackward = defParent?.[1].normalizeToNew() || Vector3.Down();
     const target = wrist.subtract(elbow);
 
     return [boneUp, boneBackward, target, undefined];
@@ -75,8 +74,7 @@ const boneUpperArms: BoneMapping[] = [true, false].map(isLeft => ({
     const elbow = getPoseLandmark(r, isLeft ? 13 : 14);
     if (!shoulder || !shoulderOther || !elbow) return undefined;
     const boneUp = shoulder.subtract(shoulderOther).normalize();
-    const boneBackward = defParent?.[0].normalizeToNew() || Vector3.Up();
-    // const boneBackward = defParent?.[0].normalizeToNew().negateInPlace() || Vector3.Down();
+    const boneBackward = defParent?.[0].normalizeToNew().negateInPlace() || Vector3.Down();
     const target = elbow.subtract(shoulder);
 
     return [boneUp, boneBackward, target, undefined];
