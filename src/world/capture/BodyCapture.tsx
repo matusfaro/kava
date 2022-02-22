@@ -199,6 +199,7 @@ const BodyCapture = (props: {
       minDetectionConfidence: 0.5,
       minTrackingConfidence: 0.5,
       enableFaceGeometry: false,
+      // Undocumented: useCpuInference, cameraNear, cameraFar, cameraVerticalFovDegrees
     });
 
     const capturer = new Capturer(props.options);

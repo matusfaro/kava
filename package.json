@@ -23,6 +23,7 @@
     "cors": "^2.8.5",
     "express": "^4.17.1",
     "isomorphic-webcrypto": "^2.3.8",
+    "kalmanjs": "^1.1.0",
     "nipplejs": "^0.9.0",
     "react": "^17.0.2",
     "react-babylonjs": "^3.0.31",
