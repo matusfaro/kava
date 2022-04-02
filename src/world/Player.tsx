@@ -17,8 +17,6 @@ const updateFace = (scene: Scene, faceRef: React.MutableRefObject<{ face: Mesh, 
     const material = new StandardMaterial(`${player.name}-face`, scene);
     material.diffuseTexture = faceRef.current.texture;
     faceRef.current.face.material = material;
-    // TODO the back is actually the front, fix it and turn this on
-    material.backFaceCulling = false;
 
     if (face.texture) {
       const img = new Image();
@@ -36,11 +34,12 @@ const updateFace = (scene: Scene, faceRef: React.MutableRefObject<{ face: Mesh, 
     if (face.texture) vertexData.uvs = face.texture.uvs;
     vertexData.applyToMesh(faceRef.current.face, true);
 
-    faceRef.current.face.translate(new Vector3(0, 0.15, 0.11), 1);
+    faceRef.current.face.rotate(Vector3.Up(), Math.PI);
+    faceRef.current.face.translate(new Vector3(0, 0.15, 0.5), 1);
     faceRef.current.face.scaling = new Vector3(1, 0.6, 0.6);
     const headBone = skeleton.bones[skeleton.getBoneIndexByName(HeadBoneName)];
     faceRef.current.face.attachToBone(headBone, player);
-    headBone.scaling = new Vector3(3, 3, 3);
+    headBone.scaling = new Vector3(2, 2, 2);
   } else {
     if (face.texture) {
       const img = new Image();

@@ -9,7 +9,6 @@ import { Capturer, VisibilityThreshold } from './capturer';
 import { captureFace } from './face';
 
 export const Qps = 30;
-export const FaceCaptureEnabled = false;
 export const FaceCaptureDimensions = { width: 1280, height: 720 };
 
 // TODO convert these into number arrays

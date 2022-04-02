@@ -39,8 +39,8 @@ export const captureFace = (results: Results, body: Body): boolean => {
   results.faceLandmarks.forEach(landmark => {
     face.mesh.positions.push(
       landmark.x - origin.x,
-      landmark.y - origin.y,
-      landmark.z - origin.z,
+      (landmark.y - origin.y),
+      1 - (landmark.z - origin.z),
     );
     face.texture?.uvs.push(
       landmark.x,

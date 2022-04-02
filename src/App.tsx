@@ -22,7 +22,7 @@ function App() {
   const boneDebugRef = useRef<boolean>(false);
   const boneNameRef = useRef<string | undefined>();
   const previewRef = useRef<boolean>(true);
-  const renderFaceRef = useRef<boolean>(false);
+  const renderFaceRef = useRef<boolean>(true);
   const renderBonesRef = useRef<boolean>(true);
   const skeletonRotationsRef = useRef<boolean>(true);
   const skeletonScalingRef = useRef<boolean>(false);
