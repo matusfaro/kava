@@ -1,4 +1,5 @@
 import { Color3, DynamicTexture, Mesh, Quaternion, Scene, SceneLoader, Skeleton, SkeletonViewer, StandardMaterial, Vector3, VertexBuffer, VertexData } from '@babylonjs/core';
+import { Space } from 'babylonjs';
 import { useEffect, useRef } from 'react';
 import { useScene } from 'react-babylonjs';
 import { GameOptions } from '../App';
@@ -34,8 +35,10 @@ const updateFace = (scene: Scene, faceRef: React.MutableRefObject<{ face: Mesh, 
     if (face.texture) vertexData.uvs = face.texture.uvs;
     vertexData.applyToMesh(faceRef.current.face, true);
 
-    faceRef.current.face.rotate(Vector3.Up(), Math.PI);
-    faceRef.current.face.translate(new Vector3(0, 0.15, 0.5), 1);
+    if (face.mesh.q) faceRef.current.face.rotationQuaternion = new Quaternion(
+      face.mesh.q.x, face.mesh.q.y, face.mesh.q.z, face.mesh.q.w);
+    if (face.mesh.p) faceRef.current.face.translate(new Vector3(
+      face.mesh.p.x, face.mesh.p.y, face.mesh.p.z), Space.WORLD);
     faceRef.current.face.scaling = new Vector3(1, 0.6, 0.6);
     const headBone = skeleton.bones[skeleton.getBoneIndexByName(HeadBoneName)];
     faceRef.current.face.attachToBone(headBone, player);

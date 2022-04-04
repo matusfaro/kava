@@ -31,6 +31,8 @@ export interface Face {
   mesh: {
     positions: Array<number>;
     normals: Array<number>;
+    p?: Vector;
+    q?: Quater;
   },
   texture?: {
     uvs: Array<number>;
