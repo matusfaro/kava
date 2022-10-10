@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import { useAfterRender, useScene } from 'react-babylonjs';
 import { io, Socket } from 'socket.io-client';
 import { ActionData, CharacterController } from '../../CharacterController';
+import { isProd } from '../../util/detectEnv';
 import Subscription from '../../util/subscriptionUtil';
 import { Body } from '../capture/BodyCapture';
 import { useAppDispatch } from '../hooks';
@@ -51,9 +52,14 @@ const Network = (props: {
   });
   useEffect(() => {
     console.log('socketio: starting');
-    localStorage.debug = '*'; // Debugging
+    if (!isProd()) {
+      localStorage.debug = '*'; // Debugging
+    }
 
-    const socket = io('http://Matus-Lappy.local:8080', { reconnection: true });
+    const host = isProd()
+      ? window.location.host
+      : '127.0.0.1:8080'
+    const socket = io(`${window.location.protocol}//${host}`, { reconnection: true });
 
     socket.on('error', (er) => {
       console.log('socketio:', er);

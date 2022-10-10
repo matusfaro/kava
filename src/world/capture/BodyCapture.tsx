@@ -4,6 +4,7 @@ import drawingUtils from '@mediapipe/drawing_utils';
 import { FACEMESH_FACE_OVAL, FACEMESH_LEFT_EYE, FACEMESH_LEFT_EYEBROW, FACEMESH_LIPS, FACEMESH_RIGHT_EYE, FACEMESH_RIGHT_EYEBROW, FACEMESH_TESSELATION, HAND_CONNECTIONS, Holistic, NormalizedLandmark, POSE_CONNECTIONS, POSE_LANDMARKS, POSE_LANDMARKS_LEFT, POSE_LANDMARKS_RIGHT, Results } from '@mediapipe/holistic';
 import { useEffect } from 'react';
 import { GameOptions } from '../../App';
+import { isProd } from '../../util/detectEnv';
 import Subscription from '../../util/subscriptionUtil';
 import { Capturer, VisibilityThreshold } from './capturer';
 import { captureFace } from './face';
@@ -191,8 +192,9 @@ const BodyCapture = (props: {
 }) => {
   useEffect(() => {
     const mediapipe = new Holistic({
-      locateFile: (file) => `/assets/mediapipe/${file}`,
-      // locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${file}`,
+      locateFile: (file) => isProd()
+        ? `https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${file}`
+        : `/assets/mediapipe/${file}`,
     });
     mediapipe.setOptions({
       selfieMode: false,

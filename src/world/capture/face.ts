@@ -1,6 +1,7 @@
 import { VertexData } from '@babylonjs/core';
 import { Results } from '@mediapipe/holistic';
 import { Matrix, Quaternion, Vector3 } from 'babylonjs';
+import { isProd } from '../../util/detectEnv';
 import { Body, Face } from './BodyCapture';
 import { FaceChin, FaceEyeLeft, FaceEyeRight, FaceMeshIndices } from './faceConst';
 
@@ -73,12 +74,23 @@ export const captureFace = (results: Results, body: Body): boolean => {
 
   // Iterate over triangle faces, each having 3 edges
   results.faceLandmarks.forEach(landmark => {
-    const point = new Vector3(landmark.x, landmark.y, landmark.z);
-    point.subtractInPlace(eyeCenter);
-    point.rotateByQuaternionToRef(inPlaceRotation, point);
-    point.scaleInPlace(scaleFactor);
-    point.z = 1 - point.z;
-    face.mesh.positions.push(point.x, point.y, point.z);
+    // TODO fixup and release to prod
+    if (isProd()) {
+      // Old way which has a weird rotation when head moves left/right
+      face.mesh.positions.push(
+        landmark.x - eyeCenter.x,
+        (landmark.y - eyeCenter.y),
+        1 - (landmark.z - eyeCenter.z),
+      );
+    } else {
+      // An attepmted fix which doesn't work
+      const point = new Vector3(landmark.x, landmark.y, landmark.z);
+      point.subtractInPlace(eyeCenter);
+      point.rotateByQuaternionToRef(inPlaceRotation, point);
+      point.scaleInPlace(scaleFactor);
+      point.z = 1 - point.z;
+      face.mesh.positions.push(point.x, point.y, point.z);
+    }
     face.texture?.uvs.push(
       landmark.x,
       1 - landmark.y,

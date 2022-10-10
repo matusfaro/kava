@@ -1,9 +1,12 @@
 import express from 'express';
 import { Server as HttpServer } from 'http';
+import path from 'path';
 import { Server as IoServer, Socket } from 'socket.io';
 import { ClientUpdateBody, ClientUpdateLocation, EventClientUpdateBody, EventClientUpdateLocation, EventServerUpdateClientBody, EventServerUpdateClientDisconnected, EventServerUpdateClientLocation, ServerUpdateClientBody, ServerUpdateClientDisconnected, ServerUpdateClientLocation } from './src/world/network/api';
 
 const app = express();
+
+app.use(express.static(path.join(__dirname, `build`)))
 
 const server = new HttpServer(app);
 

@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { isProd } from './util/detectEnv';
 import { useForceUpdate } from './util/reactUtil';
 import { allBoneNames } from './world/capture/capturer';
 import Game from './world/Game';
@@ -14,18 +15,18 @@ export interface GameOptions {
 }
 
 function App() {
-  const [running, setRunning] = useState(false);
+  const [debug, setDebug] = useState(isProd() ? false : true);
+  const [running, setRunning] = useState(debug ? false : true);
   const webcamCanvasRef = useRef(null);
   const forceUpdate = useForceUpdate();
-  const [debug, setDebug] = useState(true);
   const [enableVideo, setEnableVideo] = useState(true);
-  const boneDebugRef = useRef<boolean>(false);
-  const boneNameRef = useRef<string | undefined>();
-  const previewRef = useRef<boolean>(true);
-  const renderFaceRef = useRef<boolean>(true);
-  const renderBonesRef = useRef<boolean>(true);
-  const skeletonRotationsRef = useRef<boolean>(true);
-  const skeletonScalingRef = useRef<boolean>(false);
+  const boneDebugRef = useRef<boolean>(debug ? false : false);
+  const boneNameRef = useRef<string | undefined>(debug ? undefined : undefined);
+  const previewRef = useRef<boolean>(debug ? true : false);
+  const renderFaceRef = useRef<boolean>(debug ? true : true);
+  const renderBonesRef = useRef<boolean>(debug ? true : true);
+  const skeletonRotationsRef = useRef<boolean>(debug ? true : true);
+  const skeletonScalingRef = useRef<boolean>(debug ? false : true);
   const [options] = useState<GameOptions>({
     skeletonRotations: skeletonRotationsRef,
     skeletonScaling: skeletonScalingRef,
@@ -59,7 +60,7 @@ function App() {
               !enableVideo && setEnableVideo(true);
               setDebug(false);
               setRunning(true);
-            }}>STOP DEBUG</button>
+            }}>CLOSE DEBUG</button>
             <button onClick={() => setRunning(!running)}>{running ? 'STOP' : 'START'}</button>
             <button onClick={() => setEnableVideo(!enableVideo)}>{enableVideo ? 'video ON' : 'video OFF'}</button>
             {([
