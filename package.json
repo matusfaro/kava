@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@babylonjs/core": "^7.45.0",
-    "@babylonjs/gui": "^7.45.0",
-    "@babylonjs/loaders": "^7.45.0",
-    "@mediapipe/camera_utils": "0.3.1675466862",
+    "@babylonjs/core": "^7.54.3",
+    "@babylonjs/gui": "^7.54.3",
+    "@babylonjs/loaders": "^7.54.3",
+    "@mediapipe/camera_utils": "^0.3.1675466862",
     "@mediapipe/control_utils": "^0.6.1675466023",
     "@mediapipe/drawing_utils": "^0.3.1675466124",
     "@mediapipe/holistic": "^0.5.1675471629",
@@ -18,7 +18,7 @@
     "@types/node": "^22.12.0",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
-    "babylonjs": "^7.45.0",
+    "babylonjs": "^7.54.3",
     "babylonjs-charactercontroller": "^0.4.4",
     "cors": "^2.8.5",
     "express": "^4.21.2",
@@ -40,7 +40,7 @@
   "scripts": {
     "start": "ENV=production TS_NODE_PROJECT=./tsconfig.node.json nodemon server.ts",
     "start-dev-server": "ENV=development TS_NODE_PROJECT=./tsconfig.node.json nodemon server.ts",
-    "start-dev-client": "react-scripts start",
+    "start-dev-client": "FAST_REFRESH=false react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"

@@ -26,7 +26,7 @@ export const Friend = (props: {
   const [player, setPlayer] = useState<Mesh>();
   const playerCallback = useCallback(setPlayer, [setPlayer]);
 
-  const lastAnimNameRef = useRef<string>();
+  const lastAnimNameRef = useRef<string | undefined>(undefined);
   const position = useAppSelector(state => state.friends.friends[props.friendId]?.position);
   const rotation = useAppSelector(state => state.friends.friends[props.friendId]?.rotation);
   const animation = useAppSelector(state => state.friends.friends[props.friendId]?.animation);

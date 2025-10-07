@@ -81,7 +81,7 @@ export const Player = (props: {
   options: GameOptions;
 }) => {
   const scene = useScene();
-  const faceModelRef = useRef<{ face: Mesh, texture: DynamicTexture }>();
+  const faceModelRef = useRef<{ face: Mesh, texture: DynamicTexture } | undefined>(undefined);
   useEffect(() => {
     SceneLoader.ImportMesh('', 'assets/player/man/', 'ManCasual3new.babylon', scene, (meshes, particleSystems, skeletons) => {
       let player = meshes[0] as Mesh;

@@ -20,7 +20,7 @@ import { store } from './store/store';
 
 const Game = (props: {
   enableVideo?: boolean;
-  webcamCanvasRef: React.RefObject<HTMLCanvasElement>;
+  webcamCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   options: GameOptions;
 }) => {
   const faceSubscription: Subscription<Body> = useMemo(() => new Subscription(), []);
@@ -31,8 +31,8 @@ const Game = (props: {
   const cameraCallback = useCallback(setCamera, [setCamera]);
   const [controller, setController] = useState<CharacterController>();
   const controllerCallback = useCallback(setController, [setController]);
-  const [ground, setGround] = useState<Mesh>();
-  const groundCallback = useCallback(setGround, [setGround]);
+  // const [ground, setGround] = useState<Mesh>();
+  const groundCallback = useCallback(() => {}, []);
   const [video, setVideo] = useState<HTMLVideoElement | null>(null);
   const videoCallback = useCallback(setVideo, [setVideo]);
 

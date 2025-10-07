@@ -17,7 +17,7 @@ export interface GameOptions {
 function App() {
   const [debug, setDebug] = useState(isProd() ? false : true);
   const [running, setRunning] = useState(debug ? false : true);
-  const webcamCanvasRef = useRef(null);
+  const webcamCanvasRef = useRef<HTMLCanvasElement>(null);
   const forceUpdate = useForceUpdate();
   const [enableVideo, setEnableVideo] = useState(true);
   const boneDebugRef = useRef<boolean>(debug ? false : false);

@@ -18,13 +18,13 @@ const Network = (props: {
   controller: CharacterController;
   bodySubscription: Subscription<Body>;
 }) => {
-  const scene = useScene();
+  // const scene = useScene();
   const dispatch = useAppDispatch();
   const nextUpdateAfterRef = useRef(0);
-  const socketRef = useRef<Socket>();
+  const socketRef = useRef<Socket | undefined>(undefined);
   const lastPositionRef = useRef(Vector3.Zero());
   const lastRotationRef = useRef(Vector3.Zero());
-  const lastAnimationRef = useRef<ActionData>();
+  const lastAnimationRef = useRef<ActionData | undefined>(undefined);
   useAfterRender(() => {
     if (socketRef.current?.disconnected) return;
 

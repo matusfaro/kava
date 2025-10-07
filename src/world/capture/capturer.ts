@@ -254,7 +254,7 @@ export class Capturer {
       }
 
       const rotationScaled = numBones === 1 ? rotation : rotation.scale(1 / numBones);
-      const boneLengthScaled = numBones === 1 ? boneLength : boneLength / numBones;
+      // const boneLengthScaled = numBones === 1 ? boneLength : boneLength / numBones;
 
       changed = true;
       bone.boneNames.forEach(boneName => updates.push({

@@ -73,7 +73,7 @@ const connect = (
 }
 const debugFace = false;
 const debugHands = false;
-const previewWebcam = (results: Results, options: GameOptions, webcamCanvasRef?: React.RefObject<HTMLCanvasElement>) => {
+const previewWebcam = (results: Results, options: GameOptions, webcamCanvasRef?: React.RefObject<HTMLCanvasElement | null>) => {
   if (!options.preview.current || !webcamCanvasRef?.current) return;
 
   const canvasElement = webcamCanvasRef.current;
@@ -187,7 +187,7 @@ const BodyCapture = (props: {
   player: Mesh;
   videoElement: HTMLVideoElement;
   bodySubscription: Subscription<Body>;
-  webcamCanvasRef: React.RefObject<HTMLCanvasElement>;
+  webcamCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   options: GameOptions;
 }) => {
   useEffect(() => {
@@ -198,7 +198,11 @@ const BodyCapture = (props: {
     });
     mediapipe.setOptions({
       selfieMode: false,
-      modelComplexity: 2, // Adjust for performance  https://google.github.io/mediapipe/solutions/holistic.html#model_complexity
+      modelComplexity: 1, // Reduced from 2 to prevent WASM memory issues
+      smoothLandmarks: true,
+      enableSegmentation: false,
+      smoothSegmentation: false,
+      refineFaceLandmarks: false,
       minDetectionConfidence: 0.5,
       minTrackingConfidence: 0.5,
       enableFaceGeometry: false,
@@ -206,25 +210,66 @@ const BodyCapture = (props: {
     });
 
     const capturer = new Capturer(props.options);
+    let processingPromise: Promise<void> | null = null;
+    let isInitialized = false;
+    let lastFrameTime = 0;
+    const frameInterval = 1000 / Qps; // milliseconds between frames
+
     mediapipe.onResults(results => {
       const body = captureToBody(results, capturer, props.options);
       !!body && props.bodySubscription.notify(body);
-      previewWebcam(results, props.options, props.webcamCanvasRef)
-      return new Promise(resolve => setTimeout(resolve, 1000 / Qps))
+      previewWebcam(results, props.options, props.webcamCanvasRef);
+      // Clear the promise to allow next frame processing
+      processingPromise = null;
     });
 
     const camera = new Camera(props.videoElement, {
-      onFrame: () => mediapipe.send({ image: props.videoElement }),
+      onFrame: async () => {
+        // Skip if not initialized yet
+        if (!isInitialized) {
+          return;
+        }
+
+        // Skip if still processing previous frame or not enough time has passed
+        const currentTime = Date.now();
+        if (processingPromise || (currentTime - lastFrameTime < frameInterval)) {
+          return;
+        }
+
+        lastFrameTime = currentTime;
+
+        // Create and store the promise to prevent concurrent calls
+        processingPromise = mediapipe.send({ image: props.videoElement })
+          .then(() => {
+            // Successfully processed
+            processingPromise = null;
+          })
+          .catch(error => {
+            // Log the error but don't re-throw - let it fail without crashing
+            console.error('MediaPipe WASM abort error:', error);
+            processingPromise = null;
+            // Wait a bit before allowing next attempt
+            lastFrameTime = Date.now() + 500;
+          });
+      },
       width: FaceCaptureDimensions.width,
       height: FaceCaptureDimensions.height,
     });
 
     mediapipe.initialize().then(() => {
-      camera.start();
+      console.log('MediaPipe initialized successfully');
+      isInitialized = true;
+      camera.start().catch(error => {
+        console.error('Failed to start camera:', error);
+      });
+    }).catch(error => {
+      console.error('Failed to initialize MediaPipe:', error);
     });
 
     return () => {
-      mediapipe.close();
+      mediapipe.close().catch(error => {
+        console.error('Failed to close MediaPipe:', error);
+      });
     };
   }, []);
 

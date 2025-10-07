@@ -1,4 +1,4 @@
-import { Mesh, Vector3 } from '@babylonjs/core';
+import { GroundMesh, Mesh, Vector3 } from '@babylonjs/core';
 import React from 'react';
 import { Model } from 'react-babylonjs';
 
@@ -11,7 +11,9 @@ export const City = (props: {
       <Model name='city' rootUrl='/assets/city/' sceneFilename='scene.glb' scaleToDimension={100} position={new Vector3(0, -2, 0)} />
       <groundFromHeightMap
         name='ground'
-        ref={props.groundReady}
+        ref={(ground: GroundMesh | null) => {
+          if (ground) props.groundReady(ground as Mesh);
+        }}
         url='/assets/city/city_heightMap.png'
         // scaling={new Vector3(10, 10, 10)}
         position={new Vector3(0, -10, 0)}

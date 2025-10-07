@@ -7,7 +7,7 @@ export const Camera = (props: {
   player?: Mesh,
   cameraReady: (camera: ArcRotateCamera) => void,
 }) => {
-  const cameraRef = useRef<ArcRotateCamera>();
+  const cameraRef = useRef<ArcRotateCamera | null>(null);
   const canvas = useCanvas();
   if (!!props.player && !!cameraRef.current && !!canvas) {
     cameraRef.current.alpha = -props.player.rotation.y - 4.69
