@@ -21,3 +21,6 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# MediaPipe WASM files (copied from node_modules)
+/public/assets/mediapipe-new/

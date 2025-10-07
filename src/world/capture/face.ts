@@ -1,15 +1,44 @@
 import { VertexData } from '@babylonjs/core';
-import { Results } from '@mediapipe/holistic';
 import { Matrix, Quaternion, Vector3 } from 'babylonjs';
 import { isProd } from '../../util/detectEnv';
 import { Body, Face } from './BodyCapture';
 import { FaceChin, FaceEyeLeft, FaceEyeRight, FaceMeshIndices } from './faceConst';
 
+// Local type definitions for MediaPipe compatibility
+interface Results {
+  poseLandmarks: any[];
+  faceLandmarks: any[];
+  rightHandLandmarks?: any[];
+  leftHandLandmarks?: any[];
+  segmentationMask?: any;
+  multiFaceGeometry?: any[];
+  image: HTMLVideoElement | HTMLCanvasElement;
+}
+
 export const captureFace = (results: Results, body: Body): boolean => {
   if (!results.faceLandmarks) return false;
 
-  // TODO this may be an img element instead of canvas in unknown cases
-  const img = (results.image as HTMLCanvasElement).toDataURL('image/jpeg', 0.1);
+  // Handle both HTMLVideoElement (new API) and HTMLCanvasElement (legacy API)
+  let img: string;
+  if (results.image instanceof HTMLVideoElement) {
+    // Create a temporary canvas to extract image from video
+    const canvas = document.createElement('canvas');
+    canvas.width = results.image.videoWidth;
+    canvas.height = results.image.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.drawImage(results.image, 0, 0);
+      img = canvas.toDataURL('image/jpeg', 0.1);
+    } else {
+      return false;
+    }
+  } else if ((results.image as any).toDataURL) {
+    // Legacy API with canvas
+    img = (results.image as HTMLCanvasElement).toDataURL('image/jpeg', 0.1);
+  } else {
+    // Unknown image type
+    return false;
+  }
 
   const face: Face = {
     mesh: {
@@ -29,11 +58,22 @@ export const captureFace = (results: Results, body: Body): boolean => {
   //   snip snip...
   // }
 
+  // Check if we have enough landmarks
+  if (!results.faceLandmarks || results.faceLandmarks.length <= Math.max(FaceEyeLeft, FaceEyeRight, FaceChin)) {
+    return false;
+  }
+
   const eyeLeftLandmark = results.faceLandmarks[FaceEyeLeft];
-  const eyeLeft = new Vector3(eyeLeftLandmark.x, eyeLeftLandmark.y, eyeLeftLandmark.z);
   const eyeRightLandmark = results.faceLandmarks[FaceEyeRight];
-  const eyeRight = new Vector3(eyeRightLandmark.x, eyeRightLandmark.y, eyeRightLandmark.z);
   const chinLandmark = results.faceLandmarks[FaceChin];
+
+  // Check if landmarks exist
+  if (!eyeLeftLandmark || !eyeRightLandmark || !chinLandmark) {
+    return false;
+  }
+
+  const eyeLeft = new Vector3(eyeLeftLandmark.x, eyeLeftLandmark.y, eyeLeftLandmark.z);
+  const eyeRight = new Vector3(eyeRightLandmark.x, eyeRightLandmark.y, eyeRightLandmark.z);
   const chin = new Vector3(chinLandmark.x, chinLandmark.y, chinLandmark.z);
   const eyeCenter = Vector3.Center(eyeLeft, eyeRight);
 

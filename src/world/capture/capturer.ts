@@ -1,10 +1,29 @@
 import { Color3, Matrix, Quaternion, Vector3 } from "@babylonjs/core";
-import { NormalizedLandmarkList, Results } from "@mediapipe/holistic";
 import { GameOptions } from "../../App";
 import { debugAxesTool } from "../DebugAxes";
 import { SkeletonUpdate } from "./BodyCapture";
 import { FaceChin, FaceEyeLeft, FaceEyeRight } from "./faceConst";
 var Kalman = require('kalmanjs')
+
+// Local type definitions for MediaPipe compatibility
+interface NormalizedLandmark {
+  x: number;
+  y: number;
+  z: number;
+  visibility?: number;
+}
+
+type NormalizedLandmarkList = NormalizedLandmark[];
+
+interface Results {
+  poseLandmarks: NormalizedLandmarkList;
+  faceLandmarks: NormalizedLandmarkList;
+  rightHandLandmarks?: NormalizedLandmarkList;
+  leftHandLandmarks?: NormalizedLandmarkList;
+  segmentationMask?: any;
+  multiFaceGeometry?: any[];
+  image: HTMLVideoElement | HTMLCanvasElement;
+}
 
 const ScaleMultiplier = 0.2;
 export const VisibilityThreshold = -1;

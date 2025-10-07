@@ -1,6 +1,7 @@
-import { Color3, DynamicTexture, Mesh, Quaternion, Scene, SceneLoader, Skeleton, SkeletonViewer, StandardMaterial, Vector3, VertexBuffer, VertexData } from '@babylonjs/core';
+import { Color3, DynamicTexture, Mesh, MeshBuilder, Quaternion, Scene, Skeleton, SkeletonViewer, StandardMaterial, Vector3, VertexBuffer, VertexData } from '@babylonjs/core';
+import { ImportMeshAsync } from '@babylonjs/core/Loading/sceneLoader';
 import { Space } from 'babylonjs';
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useScene } from 'react-babylonjs';
 import { GameOptions } from '../App';
 import Subscription from '../util/subscriptionUtil';
@@ -82,49 +83,113 @@ export const Player = (props: {
 }) => {
   const scene = useScene();
   const faceModelRef = useRef<{ face: Mesh, texture: DynamicTexture } | undefined>(undefined);
+  const [isInitialized, setIsInitialized] = useState(false);
+
   useEffect(() => {
-    SceneLoader.ImportMesh('', 'assets/player/man/', 'ManCasual3new.babylon', scene, (meshes, particleSystems, skeletons) => {
-      let player = meshes[0] as Mesh;
-      player.name = props.name;
-      let skeleton = skeletons[0];
-      if (props.options.boneDebug.current) {
-        const skeletonViewer = new SkeletonViewer(skeleton, player, scene!, false, 3, {
-          displayMode: SkeletonViewer.DISPLAY_SPHERE_AND_SPURS
+    if (!scene) {
+      console.log('Scene not ready yet for Player import');
+      return;
+    }
+
+    if (isInitialized) {
+      console.log('Player already initialized');
+      return;
+    }
+    // Create a simple box mesh to act as the player root for CharacterController
+    const player = MeshBuilder.CreateBox(props.name, { size: 1 }, scene);
+    player.visibility = 0; // Make the box invisible
+    player.isPickable = false;
+
+    // Create a completely transparent material
+    const invisibleMat = new StandardMaterial('playerInvisibleMat', scene);
+    invisibleMat.alpha = 0;
+    invisibleMat.transparencyMode = 2; // ALPHA_BLEND
+    player.material = invisibleMat;
+
+    // Set up player properties immediately
+    player.scaling = new Vector3(0.75, 0.75, 0.75);
+    player.position = new Vector3(0, 15, 20); // Start higher and further back to avoid being inside buildings
+    player.checkCollisions = true;
+    player.ellipsoid = new Vector3(0.5, 1, 0.5);
+    player.ellipsoidOffset = new Vector3(0, 1, 0);
+
+    // Mark as initialized and notify that player is ready
+    setIsInitialized(true);
+    console.log('Player root created, loading character model...');
+    props.playerReady(player);
+
+    // Load the character model asynchronously
+    const loadCharacterModel = async () => {
+      try {
+        const result = await ImportMeshAsync('assets/player/man/ManCasual3new.babylon', scene);
+        const { meshes, skeletons } = result;
+
+        console.log('Loaded meshes:', meshes.map(m => ({
+          name: m.name,
+          type: m.getClassName(),
+          isMesh: m instanceof Mesh,
+          hasGeometry: (m as any).geometry ? true : false
+        })));
+
+        // Attach all loaded meshes to our player root
+        meshes.forEach(mesh => {
+          if (!mesh.parent) {
+            mesh.parent = player;
+          }
         });
-        skeletonViewer.isEnabled = true;
+
+        console.log(`Created player root box: ${player.name}, with ${meshes.length} child meshes`);
+        let skeleton = skeletons[0];
+
+        // Find the actual character mesh for skeleton viewer
+        const characterMesh = meshes.find(m => m instanceof Mesh && m.skeleton) as Mesh;
+
+        if (props.options.boneDebug.current && characterMesh) {
+          const skeletonViewer = new SkeletonViewer(skeleton, characterMesh, scene!, false, 3, {
+            displayMode: SkeletonViewer.DISPLAY_SPHERE_AND_SPURS
+          });
+          skeletonViewer.isEnabled = true;
+        }
+
+        // Store skeleton reference on the character mesh if it exists
+        if (characterMesh) {
+          characterMesh.skeleton = skeleton;
+          skeleton.enableBlending(0.1);
+
+          // Check if the mesh has a material before accessing it
+          if (characterMesh.material && characterMesh.material instanceof StandardMaterial) {
+            const sm = characterMesh.material as StandardMaterial;
+            if (sm.diffuseTexture != null) {
+              sm.backFaceCulling = true;
+              sm.ambientColor = new Color3(1, 1, 1);
+            }
+          }
+        } else if (skeleton) {
+          // If no specific character mesh found, just enable blending on the skeleton
+          skeleton.enableBlending(0.1);
+        }
+
+        const bodyUnsubscribe = props.bodySubscription?.subscribe(body => {
+          if (!scene) return;
+          props.options.renderFace.current && !!body.face && updateFace(scene, faceModelRef, player, skeleton, body.face);
+          updateSkeleton(body.skeleton, skeleton, props.options);
+        });
+
+        const faceUnsubscribe = props.faceSubscription?.subscribe(face =>
+          !!face && updateFace(scene!, faceModelRef, player, skeleton, face));
+
+        // Don't call playerReady again - it was already called after creating the box
+
+        return () => {
+          bodyUnsubscribe?.();
+          faceUnsubscribe?.();
+        };
+      } catch (error) {
+        console.error('Failed to load character model:', error);
       }
-      player.skeleton = skeleton;
+    };
 
-      skeleton.enableBlending(0.1);
-
-      let sm = player.material as StandardMaterial;
-      if (sm.diffuseTexture != null) {
-        sm.backFaceCulling = true;
-        sm.ambientColor = new Color3(1, 1, 1);
-      }
-
-      player.scaling = new Vector3(0.75, 0.75, 0.75);
-      player.position = new Vector3(-8, 1, 25);
-      player.checkCollisions = true;
-      player.ellipsoid = new Vector3(0.5, 1, 0.5);
-      player.ellipsoidOffset = new Vector3(0, 1, 0);
-
-      const bodyUnsubscribe = props.bodySubscription?.subscribe(body => {
-        if (!scene) return;
-        props.options.renderFace.current && !!body.face && updateFace(scene, faceModelRef, player, skeleton, body.face);
-        updateSkeleton(body.skeleton, skeleton, props.options);
-      });
-
-      const faceUnsubscribe = props.faceSubscription?.subscribe(face =>
-        !!face && updateFace(scene!, faceModelRef, player, skeleton, face));
-
-      props.playerReady(player);
-
-      return () => {
-        bodyUnsubscribe?.();
-        faceUnsubscribe?.();
-      };
-    });
-  }, []);
+    loadCharacterModel();
+  }, [scene, isInitialized]);
   return null;
 }

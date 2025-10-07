@@ -38,18 +38,16 @@ const Game = (props: {
 
   return (
     <>
-      {props.enableVideo && (<video autoPlay muted ref={videoCallback} style={{ display: 'none' }} />)}
+      {props.enableVideo && (<video autoPlay muted ref={videoCallback} style={{ position: 'absolute', width: '320px', height: '240px', bottom: '10px', left: '10px', zIndex: 1000, opacity: 0.5 }} />)}
       {!!controller && (<Joystick controller={controller} />)}
       <Engine antialias adaptToDeviceRatio canvasId='game'>
         <Scene>
           <Suspense fallback={false}>
             <Provider store={store}>
-              <hemisphericLight name='lightHemi' intensity={1} direction={Vector3.Up()} />
-              <pointLight name='lightPoint' position={new Vector3(80, 100, 100)} specular={Color3.Black()} diffuse={new Color3(255 / 255, 240 / 255, 221 / 255)} />
+              <hemisphericLight name='lightHemi' intensity={0.8} direction={Vector3.Up()} />
               <Player key='playerSelf' name='playerSelf' playerReady={playerCallback} bodySubscription={faceSubscription} options={props.options} />
               <Camera player={player} cameraReady={cameraCallback} />
               <City groundReady={groundCallback} />
-              {/* <box name='ground' width={100} depth={100} height={1} checkCollisions /> */}
               {!!player && !!camera && (
                 <Controller player={player} camera={camera} controllerReady={controllerCallback} />
               )}

@@ -1,7 +1,17 @@
 import { Vector3 } from '@babylonjs/core';
-import { Results } from '@mediapipe/holistic';
 import { SkeletonUpdate, Vector } from './BodyCapture';
 import { FaceChin, FaceEyeLeft, FaceEyeRight } from './faceConst';
+
+// Local type definitions for MediaPipe compatibility
+interface Results {
+  poseLandmarks: any[];
+  faceLandmarks: any[];
+  rightHandLandmarks?: any[];
+  leftHandLandmarks?: any[];
+  segmentationMask?: any;
+  multiFaceGeometry?: any[];
+  image: HTMLVideoElement | HTMLCanvasElement;
+}
 
 // DEPRECATED
 export const capturePose = (holistic: Results, out: SkeletonUpdate): boolean => {
