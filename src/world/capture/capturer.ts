@@ -78,7 +78,8 @@ const boneHands: BoneMapping[] = [true, false].map(isLeft => ({
     const fingers = (isLeft
       ? fingerLittle.subtract(fingerIndex)
       : fingerIndex.subtract(fingerLittle)).normalize()
-    const targetBackward = Vector3.Cross(target.normalizeToNew(), fingers);
+    // Negate cross product to flip hand orientation (front camera correction)
+    const targetBackward = Vector3.Cross(target.normalizeToNew(), fingers).negate();
 
     return [boneUp, boneBackward, target, targetBackward];
   },
@@ -109,6 +110,16 @@ const boneUpperArms: BoneMapping[] = [true, false].map(isLeft => ({
     const boneUp = shoulder.subtract(shoulderOther).normalize();
     const boneBackward = defParent?.[0].normalizeToNew() || Vector3.Up();
     const target = elbow.subtract(shoulder);
+
+    // Debug logging for left arm
+    if (isLeft && Math.random() < 0.02) { // Log 2% of frames
+      console.log('=== Left Upper Arm Debug ===');
+      console.log('Shoulder (MediaPipe):', shoulder.toString());
+      console.log('Elbow (MediaPipe):', elbow.toString());
+      console.log('Target (elbow-shoulder):', target.toString());
+      console.log('Target length:', target.length());
+      console.log('Target normalized:', target.normalizeToNew().toString());
+    }
 
     return [boneUp, boneBackward, target, undefined];
   },
@@ -223,6 +234,9 @@ export class Capturer {
     var def = boneEnabled ? bone.getDef(r, defParent) : undefined;
     const firstBoneName = bone.boneNames[bone.boneNames.length - 1];
 
+    // Don't use previous definitions for bones - if not detected, don't update
+    // This prevents hands from staying in weird positions when not visible
+
     if (def !== undefined) {
       const [boneUp, boneBackward, target, targetBackward] = def;
       boneUp.normalize();
@@ -283,11 +297,8 @@ export class Capturer {
       }));
     }
 
-    if (def) {
-      this.bonePrevDef[firstBoneName] = def;
-    } else {
-      def = this.bonePrevDef[firstBoneName];
-    }
+    // Pass the current definition to children (not previous cached ones)
+    // This ensures child bones align with current parent bone orientation
 
     changed = bone.children?.map(childBone => this.captureBonesRecursively(
       r, updates, options, changed, childBone, def))
@@ -312,10 +323,24 @@ export class Capturer {
     const landmark = landmarklist?.[index];
     if (!landmark || ((landmark?.visibility || 0) < VisibilityThreshold)) return undefined;
 
+    // Apply Z-axis transformation based on mode
+    let z: number;
+    switch (this.options.zAxisMode.current) {
+      case 'normal':
+        z = -landmark.z; // Negate: MediaPipe (positive=away) → Babylon (positive=forward)
+        break;
+      case 'negated':
+        z = landmark.z; // Don't negate (for testing)
+        break;
+      case 'original':
+        z = -(1 - landmark.z); // Original with negation
+        break;
+    }
+
     landmarkVector = new Vector3(
-      landmark.x,
-      1 - landmark.y, // Normalize from mediapipe to babylonjs
-      1 - landmark.z, // Normalize from mediapipe to babylonjs
+      landmark.x, // Keep X as-is: front camera video is already mirrored
+      1 - landmark.y, // Flip Y: MediaPipe Y is top-to-bottom, Babylon Y is bottom-to-top
+      z
     );
 
     this.smoothLandmarkInPlace(index + globalIndexOffset, landmarkVector);

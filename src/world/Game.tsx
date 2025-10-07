@@ -38,7 +38,7 @@ const Game = (props: {
 
   return (
     <>
-      {props.enableVideo && (<video autoPlay muted ref={videoCallback} style={{ position: 'absolute', width: '320px', height: '240px', bottom: '10px', left: '10px', zIndex: 1000, opacity: 0.5 }} />)}
+      {props.enableVideo && (<video autoPlay muted ref={videoCallback} style={{ display: 'none' }} />)}
       {!!controller && (<Joystick controller={controller} />)}
       <Engine antialias adaptToDeviceRatio canvasId='game'>
         <Scene>

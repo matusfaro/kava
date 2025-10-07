@@ -1,5 +1,6 @@
 import { VertexData } from '@babylonjs/core';
 import { Quaternion, Vector3 } from 'babylonjs';
+import { GameOptions } from '../../App';
 import { Body, Face } from './BodyCapture';
 import { FaceChin, FaceEyeLeft, FaceEyeRight, FaceMeshIndices } from './faceConst';
 
@@ -14,29 +15,36 @@ interface Results {
   image: HTMLVideoElement | HTMLCanvasElement;
 }
 
-export const captureFace = (results: Results, body: Body): boolean => {
+// Rate limiting for face texture updates
+let lastFaceTextureUpdate = 0;
+
+export const captureFace = (results: Results, body: Body, options: GameOptions): boolean => {
   if (!results.faceLandmarks) return false;
 
+  // Rate limit face texture updates to reduce CPU load (configurable Hz)
+  const now = Date.now();
+  const faceTextureUpdateInterval = 1000 / options.faceRefreshRate.current;
+  const shouldUpdateTexture = (now - lastFaceTextureUpdate) >= faceTextureUpdateInterval;
+
   // Handle both HTMLVideoElement (new API) and HTMLCanvasElement (legacy API)
-  let img: string;
-  if (results.image instanceof HTMLVideoElement) {
-    // Create a temporary canvas to extract image from video
-    const canvas = document.createElement('canvas');
-    canvas.width = results.image.videoWidth;
-    canvas.height = results.image.videoHeight;
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.drawImage(results.image, 0, 0);
-      img = canvas.toDataURL('image/jpeg', 0.1);
-    } else {
-      return false;
+  let img: string | undefined;
+  if (shouldUpdateTexture) {
+    lastFaceTextureUpdate = now;
+
+    if (results.image instanceof HTMLVideoElement) {
+      // Create a temporary canvas to extract image from video
+      const canvas = document.createElement('canvas');
+      canvas.width = results.image.videoWidth;
+      canvas.height = results.image.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(results.image, 0, 0);
+        img = canvas.toDataURL('image/jpeg', 0.1);
+      }
+    } else if ((results.image as any).toDataURL) {
+      // Legacy API with canvas
+      img = (results.image as HTMLCanvasElement).toDataURL('image/jpeg', 0.1);
     }
-  } else if ((results.image as any).toDataURL) {
-    // Legacy API with canvas
-    img = (results.image as HTMLCanvasElement).toDataURL('image/jpeg', 0.1);
-  } else {
-    // Unknown image type
-    return false;
   }
 
   const face: Face = {
@@ -45,10 +53,11 @@ export const captureFace = (results: Results, body: Body): boolean => {
       normals: [], // TODO OPTIMIZE initialize with size
       indices: [],
     },
-    texture: {
+    // Only include texture if we have an image update
+    texture: img ? {
       uvs: [], // TODO OPTIMIZE initialize with size
       img,
-    }
+    } : undefined
   };
 
   // TODO OPTIMIZE clip img using face oval to save space during transfer
@@ -117,10 +126,13 @@ export const captureFace = (results: Results, body: Body): boolean => {
     // Invert z but don't add offset
     point.z = -point.z;
     face.mesh.positions.push(point.x, point.y, point.z);
-    face.texture?.uvs.push(
-      landmark.x,
-      1 - landmark.y,
-    );
+    // Only add UVs if we have a texture
+    if (face.texture) {
+      face.texture.uvs.push(
+        landmark.x,
+        1 - landmark.y,
+      );
+    }
   });
 
   // Store the face mesh indices

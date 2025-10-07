@@ -14,36 +14,18 @@ export const Camera = (props: {
   // Track camera ready state
   const [cameraReady, setCameraReady] = useState(false);
 
-  // Update camera continuously to follow player
+  // Attach camera controls when ready
   useEffect(() => {
     if (!props.player || !canvas || !scene || !cameraRef.current) return;
 
-    console.log('Setting up camera tracking for player', {
+    console.log('Setting up camera controls', {
       hasPlayer: !!props.player,
       hasCamera: !!cameraRef.current,
       playerPosition: props.player.position
     });
 
-    // Attach controls
+    // Attach controls - CharacterController will handle camera positioning
     cameraRef.current.attachControl(canvas, false);
-
-    // Update camera target every frame
-    const updateCamera = () => {
-      if (cameraRef.current && props.player) {
-        const targetPosition = new Vector3(
-          props.player.position.x,
-          props.player.position.y + 1,
-          props.player.position.z
-        );
-        cameraRef.current.setTarget(targetPosition);
-      }
-    };
-
-    scene.registerBeforeRender(updateCamera);
-
-    return () => {
-      scene.unregisterBeforeRender(updateCamera);
-    };
   }, [props.player, canvas, scene, cameraReady]);
   return (
     <arcRotateCamera

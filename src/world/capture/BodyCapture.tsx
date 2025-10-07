@@ -66,7 +66,7 @@ const captureToBody = (results: Results, capturer: Capturer, options: GameOption
   const body: Body = { skeleton: [] };
 
   let changed = false;
-  if (options.renderFace.current) changed = captureFace(results, body) || changed;
+  if (options.renderFace.current) changed = captureFace(results, body, options) || changed;
   if (options.renderBones.current) changed = capturer.capture(results, body.skeleton, options) || changed;
 
   return changed ? body : undefined;
@@ -79,6 +79,23 @@ const previewWebcam = (results: Results, options: GameOptions, webcamCanvasRef?:
   if (!canvasElement) return;
   const canvasCtx = canvasElement.getContext('2d');
   if (!canvasCtx) return;
+
+  // Set canvas dimensions based on video if not already set
+  if (results.image instanceof HTMLVideoElement) {
+    const videoWidth = results.image.videoWidth;
+    const videoHeight = results.image.videoHeight;
+
+    // Scale down for preview (max 320px on longer side)
+    const maxSize = 320;
+    const scale = Math.min(maxSize / Math.max(videoWidth, videoHeight), 1);
+    const previewWidth = Math.round(videoWidth * scale);
+    const previewHeight = Math.round(videoHeight * scale);
+
+    if (canvasElement.width !== previewWidth || canvasElement.height !== previewHeight) {
+      canvasElement.width = previewWidth;
+      canvasElement.height = previewHeight;
+    }
+  }
 
   // Draw the overlays
   canvasCtx.save();
@@ -125,6 +142,7 @@ const BodyCapture = (props: {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasCtxRef = useRef<CanvasRenderingContext2D | null>(null);
   const lastTimestampMsRef = useRef(-1);
+  const videoDimensionsRef = useRef({ width: FaceCaptureDimensions.width, height: FaceCaptureDimensions.height });
 
   useEffect(() => {
     const capturer = new Capturer(props.options);
@@ -136,8 +154,9 @@ const BodyCapture = (props: {
         console.log('Requesting webcam access...');
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
-            width: FaceCaptureDimensions.width,
-            height: FaceCaptureDimensions.height
+            facingMode: 'user', // Front camera on mobile
+            width: { ideal: FaceCaptureDimensions.width },
+            height: { ideal: FaceCaptureDimensions.height }
           }
         });
 
@@ -149,7 +168,20 @@ const BodyCapture = (props: {
           // Wait for video to be ready
           await new Promise<void>((resolve) => {
             props.videoElement.onloadedmetadata = () => {
-              console.log('Video metadata loaded, ready state:', props.videoElement.readyState);
+              const actualWidth = props.videoElement.videoWidth;
+              const actualHeight = props.videoElement.videoHeight;
+              const isPortrait = actualHeight > actualWidth;
+
+              // Store actual video dimensions for canvas creation
+              videoDimensionsRef.current = { width: actualWidth, height: actualHeight };
+
+              console.log('Video metadata loaded:', {
+                readyState: props.videoElement.readyState,
+                width: actualWidth,
+                height: actualHeight,
+                orientation: isPortrait ? 'portrait' : 'landscape'
+              });
+
               // Ensure video is playing
               props.videoElement.play().then(() => {
                 console.log('Video is playing');
@@ -170,10 +202,10 @@ const BodyCapture = (props: {
       try {
         console.log('Initializing HolisticLandmarker...');
 
-        // Create off-screen canvas for processing
+        // Create off-screen canvas for processing with actual video dimensions
         canvasRef.current = document.createElement('canvas');
-        canvasRef.current.width = FaceCaptureDimensions.width;
-        canvasRef.current.height = FaceCaptureDimensions.height;
+        canvasRef.current.width = videoDimensionsRef.current.width;
+        canvasRef.current.height = videoDimensionsRef.current.height;
         canvasCtxRef.current = canvasRef.current.getContext('2d');
         console.log('Created processing canvas:', canvasRef.current.width, 'x', canvasRef.current.height);
 

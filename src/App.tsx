@@ -12,6 +12,8 @@ export interface GameOptions {
   renderBones: React.MutableRefObject<boolean>;
   skeletonRotations: React.MutableRefObject<boolean>;
   skeletonScaling: React.MutableRefObject<boolean>;
+  faceRefreshRate: React.MutableRefObject<number>;
+  zAxisMode: React.MutableRefObject<'normal' | 'negated' | 'original'>;
 }
 
 function App() {
@@ -27,6 +29,8 @@ function App() {
   const renderBonesRef = useRef<boolean>(debug ? true : true);
   const skeletonRotationsRef = useRef<boolean>(debug ? true : true);
   const skeletonScalingRef = useRef<boolean>(debug ? false : true);
+  const faceRefreshRateRef = useRef<number>(30);
+  const zAxisModeRef = useRef<'normal' | 'negated' | 'original'>('normal');
   const [options] = useState<GameOptions>({
     skeletonRotations: skeletonRotationsRef,
     skeletonScaling: skeletonScalingRef,
@@ -35,6 +39,8 @@ function App() {
     preview: previewRef,
     renderFace: renderFaceRef,
     renderBones: renderBonesRef,
+    faceRefreshRate: faceRefreshRateRef,
+    zAxisMode: zAxisModeRef,
   });
   return (
     <>
@@ -85,16 +91,54 @@ function App() {
                 <option key={boneName} value={boneName}>{boneName}</option>
               ))}
             </select>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <label htmlFor="faceRefreshRate" style={{ fontSize: '14px' }}>Face Hz:</label>
+              <input
+                id="faceRefreshRate"
+                type="number"
+                min="1"
+                max="60"
+                defaultValue={30}
+                style={{ width: '60px' }}
+                onChange={e => {
+                  const rate = parseInt(e.target.value) || 30;
+                  faceRefreshRateRef.current = Math.max(1, Math.min(60, rate));
+                }}
+              />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <label htmlFor="zAxisMode" style={{ fontSize: '14px' }}>Z-Axis:</label>
+              <select
+                id="zAxisMode"
+                defaultValue="normal"
+                onChange={e => {
+                  zAxisModeRef.current = e.target.value as 'normal' | 'negated' | 'original';
+                  forceUpdate();
+                }}
+                style={{ fontSize: '12px' }}
+              >
+                <option value="normal">Normal (z)</option>
+                <option value="negated">Negated (-z)</option>
+                <option value="original">Original (1-z)</option>
+              </select>
+            </div>
           </>
         )}
       </div>
       <div style={{
         position: 'absolute',
-        zIndex: 2,
-        right: 30,
-        top: 30,
+        zIndex: 1000,
+        left: 10,
+        bottom: 10,
       }}>
-        <canvas ref={webcamCanvasRef} style={{ visibility: previewRef.current ? 'visible' : 'hidden' }} />
+        <canvas
+          ref={webcamCanvasRef}
+          style={{
+            visibility: previewRef.current ? 'visible' : 'hidden',
+            opacity: 0.5,
+            display: 'block'
+          }}
+        />
       </div>
       {!!running && (
         <Game

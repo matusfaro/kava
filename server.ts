@@ -1,5 +1,7 @@
 import express from 'express';
 import { Server as HttpServer } from 'http';
+import { Server as HttpsServer } from 'https';
+import fs from 'fs';
 import path from 'path';
 import { Server as IoServer, Socket } from 'socket.io';
 import { ClientUpdateBody, ClientUpdateLocation, EventClientUpdateBody, EventClientUpdateLocation, EventServerUpdateClientBody, EventServerUpdateClientDisconnected, EventServerUpdateClientLocation, ServerUpdateClientBody, ServerUpdateClientDisconnected, ServerUpdateClientLocation } from './src/world/network/api';
@@ -8,7 +10,27 @@ const app = express();
 
 app.use(express.static(path.join(__dirname, `build`)))
 
-const server = new HttpServer(app);
+// Use HTTPS in development
+const isDev = process.env.ENV === 'development';
+let server: HttpServer | HttpsServer;
+
+if (isDev) {
+	try {
+		// Try to use the same certificates that react-scripts generates
+		const certPath = path.join(process.env.HOME || '', '.localhost-ssl');
+		const httpsOptions = {
+			key: fs.readFileSync(path.join(certPath, 'localhost-key.pem')),
+			cert: fs.readFileSync(path.join(certPath, 'localhost.pem'))
+		};
+		server = new HttpsServer(httpsOptions, app);
+		console.log('HTTPS enabled for development');
+	} catch (err) {
+		console.log('HTTPS certificates not found, falling back to HTTP');
+		server = new HttpServer(app);
+	}
+} else {
+	server = new HttpServer(app);
+}
 
 const io = new IoServer(server, {
 	cors: {
@@ -50,5 +72,6 @@ io.on('connection', newConnection);
 
 const port = process.env.PORT || 8080;
 server.listen(port, () => {
-	console.log(`listening on ${port}...`)
+	const protocol = server instanceof HttpsServer ? 'https' : 'http';
+	console.log(`listening on ${protocol}://localhost:${port}...`)
 });
