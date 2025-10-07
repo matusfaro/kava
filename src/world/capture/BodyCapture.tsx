@@ -40,6 +40,7 @@ export interface Face {
   mesh: {
     positions: Array<number>;
     normals: Array<number>;
+    indices: Array<number>;
     p?: Vector;
     q?: Quater;
   },

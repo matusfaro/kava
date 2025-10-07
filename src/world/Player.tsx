@@ -1,16 +1,29 @@
-import { Color3, DynamicTexture, Mesh, MeshBuilder, Quaternion, Scene, Skeleton, SkeletonViewer, StandardMaterial, Vector3, VertexBuffer, VertexData } from '@babylonjs/core';
+import {
+  Color3,
+  DynamicTexture,
+  Mesh,
+  MeshBuilder,
+  Quaternion,
+  Scene,
+  Skeleton,
+  SkeletonViewer,
+  StandardMaterial,
+  Vector3,
+  VertexBuffer,
+  VertexData,
+  Axis,
+  AbstractMesh
+} from '@babylonjs/core';
 import { ImportMeshAsync } from '@babylonjs/core/Loading/sceneLoader';
-import { Space } from 'babylonjs';
 import React, { useEffect, useRef, useState } from 'react';
 import { useScene } from 'react-babylonjs';
 import { GameOptions } from '../App';
 import Subscription from '../util/subscriptionUtil';
 import { Body, Face, FaceCaptureDimensions, SkeletonUpdate, Vector } from './capture/BodyCapture';
-import { FaceMeshIndices } from './capture/faceConst';
 
 export const HeadBoneName = 'Head';
 
-const updateFace = (scene: Scene, faceRef: React.MutableRefObject<{ face: Mesh, texture: DynamicTexture } | undefined>, player: Mesh, skeleton: Skeleton, face: Face) => {
+const updateFace = (scene: Scene, faceRef: React.MutableRefObject<{ face: Mesh, texture: DynamicTexture } | undefined>, player: Mesh, skeleton: Skeleton, face: Face, headMeshes?: AbstractMesh[]) => {
   if (!faceRef.current) {
     faceRef.current = {
       face: new Mesh(`${player.name}-face`),
@@ -18,7 +31,17 @@ const updateFace = (scene: Scene, faceRef: React.MutableRefObject<{ face: Mesh, 
     };
     const material = new StandardMaterial(`${player.name}-face`, scene);
     material.diffuseTexture = faceRef.current.texture;
+    material.specularColor = new Color3(0, 0, 0); // No specular on the face
     faceRef.current.face.material = material;
+
+    // Hide head meshes when face is created
+    if (headMeshes && headMeshes.length > 0) {
+      console.log('Hiding head meshes now that face is present');
+      headMeshes.forEach(mesh => {
+        mesh.visibility = 0;
+        mesh.isVisible = false;
+      });
+    }
 
     if (face.texture) {
       const img = new Image();
@@ -32,18 +55,32 @@ const updateFace = (scene: Scene, faceRef: React.MutableRefObject<{ face: Mesh, 
     var vertexData = new VertexData();
     vertexData.positions = face.mesh.positions;
     vertexData.normals = face.mesh.normals;
-    vertexData.indices = FaceMeshIndices;
+    vertexData.indices = face.mesh.indices; // Use extended indices from face mesh
     if (face.texture) vertexData.uvs = face.texture.uvs;
     vertexData.applyToMesh(faceRef.current.face, true);
 
-    if (face.mesh.q) faceRef.current.face.rotationQuaternion = new Quaternion(
-      face.mesh.q.x, face.mesh.q.y, face.mesh.q.z, face.mesh.q.w);
-    if (face.mesh.p) faceRef.current.face.translate(new Vector3(
-      face.mesh.p.x, face.mesh.p.y, face.mesh.p.z), Space.WORLD);
+    // Set rotation if provided
+    if (face.mesh.q) {
+      faceRef.current.face.rotationQuaternion = new Quaternion(
+        face.mesh.q.x, face.mesh.q.y, face.mesh.q.z, face.mesh.q.w);
+    }
+
+    // Set local position before attaching (this becomes relative to parent)
+    if (face.mesh.p) {
+      faceRef.current.face.position.x = face.mesh.p.x;
+      faceRef.current.face.position.y = face.mesh.p.y;
+      faceRef.current.face.position.z = face.mesh.p.z;
+    }
+
+    // Apply mesh scaling
     faceRef.current.face.scaling = new Vector3(1, 0.6, 0.6);
+
+    // Now attach to head bone - position becomes relative to bone
     const headBone = skeleton.bones[skeleton.getBoneIndexByName(HeadBoneName)];
     faceRef.current.face.attachToBone(headBone, player);
-    headBone.scaling = new Vector3(2, 2, 2);
+
+    // Keep head bone at normal scale
+    headBone.scaling = new Vector3(1, 1, 1);
   } else {
     if (face.texture) {
       const img = new Image();
@@ -83,6 +120,7 @@ export const Player = (props: {
 }) => {
   const scene = useScene();
   const faceModelRef = useRef<{ face: Mesh, texture: DynamicTexture } | undefined>(undefined);
+  const headMeshesRef = useRef<AbstractMesh[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
@@ -108,7 +146,7 @@ export const Player = (props: {
 
     // Set up player properties immediately
     player.scaling = new Vector3(0.75, 0.75, 0.75);
-    player.position = new Vector3(0, 15, 20); // Start higher and further back to avoid being inside buildings
+    player.position = new Vector3(10, 15, 28);
     player.checkCollisions = true;
     player.ellipsoid = new Vector3(0.5, 1, 0.5);
     player.ellipsoidOffset = new Vector3(0, 1, 0);
@@ -135,6 +173,24 @@ export const Player = (props: {
         meshes.forEach(mesh => {
           if (!mesh.parent) {
             mesh.parent = player;
+          }
+          // Check if this is specifically a head mesh
+          const meshName = mesh.name ? mesh.name.toLowerCase() : '';
+
+          // Store head-related meshes to hide later when face appears
+          if (meshName && !mesh.skeleton && (
+            meshName === 'head' ||
+            meshName === 'hair' ||
+            meshName.includes('head_') ||
+            meshName.includes('hair_') ||
+            meshName.includes('beard') ||
+            meshName.includes('eyebrow')
+          )) {
+            headMeshesRef.current.push(mesh);
+            console.log('Found head component to hide when face appears:', mesh.name);
+          } else if (mesh.skeleton && mesh instanceof Mesh) {
+            // This is the main body mesh with skeleton
+            console.log('Main body mesh with skeleton:', mesh.name);
           }
         });
 
@@ -171,12 +227,12 @@ export const Player = (props: {
 
         const bodyUnsubscribe = props.bodySubscription?.subscribe(body => {
           if (!scene) return;
-          props.options.renderFace.current && !!body.face && updateFace(scene, faceModelRef, player, skeleton, body.face);
+          props.options.renderFace.current && !!body.face && updateFace(scene, faceModelRef, player, skeleton, body.face, headMeshesRef.current);
           updateSkeleton(body.skeleton, skeleton, props.options);
         });
 
         const faceUnsubscribe = props.faceSubscription?.subscribe(face =>
-          !!face && updateFace(scene!, faceModelRef, player, skeleton, face));
+          !!face && updateFace(scene!, faceModelRef, player, skeleton, face, headMeshesRef.current));
 
         // Don't call playerReady again - it was already called after creating the box
 

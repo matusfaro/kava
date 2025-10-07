@@ -1,6 +1,5 @@
 import { VertexData } from '@babylonjs/core';
-import { Matrix, Quaternion, Vector3 } from 'babylonjs';
-import { isProd } from '../../util/detectEnv';
+import { Quaternion, Vector3 } from 'babylonjs';
 import { Body, Face } from './BodyCapture';
 import { FaceChin, FaceEyeLeft, FaceEyeRight, FaceMeshIndices } from './faceConst';
 
@@ -44,6 +43,7 @@ export const captureFace = (results: Results, body: Body): boolean => {
     mesh: {
       positions: [], // TODO OPTIMIZE initialize with size
       normals: [], // TODO OPTIMIZE initialize with size
+      indices: [],
     },
     texture: {
       uvs: [], // TODO OPTIMIZE initialize with size
@@ -72,14 +72,15 @@ export const captureFace = (results: Results, body: Body): boolean => {
     return false;
   }
 
-  const eyeLeft = new Vector3(eyeLeftLandmark.x, eyeLeftLandmark.y, eyeLeftLandmark.z);
-  const eyeRight = new Vector3(eyeRightLandmark.x, eyeRightLandmark.y, eyeRightLandmark.z);
-  const chin = new Vector3(chinLandmark.x, chinLandmark.y, chinLandmark.z);
-  const eyeCenter = Vector3.Center(eyeLeft, eyeRight);
+  // Calculate eye center for centering the face
+  const eyeCenter = new Vector3(
+    (eyeLeftLandmark.x + eyeRightLandmark.x) / 2,
+    (eyeLeftLandmark.y + eyeRightLandmark.y) / 2,
+    (eyeLeftLandmark.z + eyeRightLandmark.z) / 2
+  );
 
-  // Rotation to match correct front
+  // 180-degree rotation around Y-axis to flip face forward (face landmarks are backwards)
   const originRotation = Quaternion.RotationAxis(Vector3.Up(), Math.PI);
-  // Rotation normalization
   face.mesh.q = {
     x: originRotation.x,
     y: originRotation.y,
@@ -87,24 +88,19 @@ export const captureFace = (results: Results, body: Body): boolean => {
     w: originRotation.w,
   };
 
-  // Translate to fit front of Head 
-  const translation = new Vector3(0, 0.15, 0.5);
+  // Position face in front of head (local space relative to head bone)
+  // Lower position for better alignment with head
+  const translation = new Vector3(0, 0.15, 0.15); // Y lowered ~50%, Z moved forward 5%
   face.mesh.p = { x: translation.x, y: translation.y, z: translation.z };
 
-  // Scale face to always be same size regardless how far away from camera it is
-  const eyeDistance = Vector3.Distance(eyeRight, eyeLeft);
-  const scaleFactor = 0.07 / eyeDistance;
-
-  // Rotate face landmarks to face forward
-  const rotUp = chin.subtract(eyeCenter).normalize();
-  const rotRight = eyeRight.subtract(eyeLeft).normalize();
-  const rotForward = Vector3.Cross(rotRight, rotUp).normalize();
-  const inPlaceRotation = Quaternion.FromRotationMatrix(Matrix.FromValues(
-    rotRight._x, rotUp._x, rotForward._x, 0.0,
-    rotRight._y, rotUp._y, rotForward._y, 0.0,
-    rotRight._z, rotUp._z, rotForward._z, 0.0,
-    0.0, 0.0, 0.0, 1.0
-  ).getRotationMatrix()).normalize();
+  // Scale face based on a fixed reference size
+  // Use the raw landmark distance before 3D transformation to avoid perspective issues
+  const eyeDistanceRaw = Math.sqrt(
+    Math.pow(eyeRightLandmark.x - eyeLeftLandmark.x, 2) +
+    Math.pow(eyeRightLandmark.y - eyeLeftLandmark.y, 2)
+  );
+  // Use a fixed scale that doesn't change with head tilt
+  const scaleFactor = 0.14 / Math.max(eyeDistanceRaw, 0.1); // Clamp minimum to avoid division issues
   // debugAxesTool.update({ name: 'faceWorldForward', boneName: 'Head', direction: Vector3.Forward(), color: Color3.FromInts(0, 153, 0 /* Dark green */) });
   // debugAxesTool.update({ name: 'faceWorldUp', boneName: 'Head', direction: Vector3.Up(), color: Color3.FromInts(153, 0, 0 /* Dark red */) });
   // debugAxesTool.update({ name: 'faceWorldRight', boneName: 'Head', direction: Vector3.Right(), color: Color3.FromInts(0, 0, 153 /* Dark blue */) });
@@ -112,34 +108,27 @@ export const captureFace = (results: Results, body: Body): boolean => {
   // debugAxesTool.update({ name: 'faceRotUp', boneName: 'Head', direction: rotUp, color: Color3.Red() });
   // debugAxesTool.update({ name: 'faceRotRight', boneName: 'Head', direction: rotRight, color: Color3.Blue() });
 
-  // Iterate over triangle faces, each having 3 edges
+  // Process original face landmarks
   results.faceLandmarks.forEach(landmark => {
-    // TODO fixup and release to prod
-    if (isProd()) {
-      // Old way which has a weird rotation when head moves left/right
-      face.mesh.positions.push(
-        landmark.x - eyeCenter.x,
-        (landmark.y - eyeCenter.y),
-        1 - (landmark.z - eyeCenter.z),
-      );
-    } else {
-      // An attepmted fix which doesn't work
-      const point = new Vector3(landmark.x, landmark.y, landmark.z);
-      point.subtractInPlace(eyeCenter);
-      point.rotateByQuaternionToRef(inPlaceRotation, point);
-      point.scaleInPlace(scaleFactor);
-      point.z = 1 - point.z;
-      face.mesh.positions.push(point.x, point.y, point.z);
-    }
+    // Process landmarks without applying rotation (rotation handled by mesh quaternion)
+    const point = new Vector3(landmark.x, landmark.y, landmark.z);
+    point.subtractInPlace(eyeCenter);
+    point.scaleInPlace(scaleFactor);
+    // Invert z but don't add offset
+    point.z = -point.z;
+    face.mesh.positions.push(point.x, point.y, point.z);
     face.texture?.uvs.push(
       landmark.x,
       1 - landmark.y,
     );
   });
 
+  // Store the face mesh indices
+  face.mesh.indices = FaceMeshIndices;
+
   VertexData.ComputeNormals(
     face.mesh.positions,
-    FaceMeshIndices,
+    face.mesh.indices,
     face.mesh.normals, {
     useRightHandedSystem: false,
   });
