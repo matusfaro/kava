@@ -61,6 +61,98 @@ interface BoneMapping {
   children?: Array<BoneMapping>;
 }
 
+// MediaPipe Pose Landmark Indices:
+// Upper body: 11,12 (shoulders), 13,14 (elbows), 15,16 (wrists)
+// Hands: 17,18 (pinky), 19,20 (index finger)
+// Lower body: 23,24 (hips), 25,26 (knees), 27,28 (ankles)
+// Feet: 29,30 (heels), 31,32 (foot index/toes)
+
+const boneFeet: BoneMapping[] = [true, false].map(isLeft => ({
+  boneNames: [isLeft ? 'Toes.L' : 'Toes.R'],
+  getDef: (r, defParent) => {
+    const ankle = r.getPoseLandmark(isLeft ? 27 : 28);
+    const heel = r.getPoseLandmark(isLeft ? 29 : 30);
+    const footIndex = r.getPoseLandmark(isLeft ? 31 : 32);
+    if (!ankle || !heel || !footIndex) return undefined;
+
+    // Foot bone up direction points from ankle toward knee (inherited from parent)
+    const boneUp = defParent?.[2].normalizeToNew() || Vector3.Up();
+    const boneBackward = defParent?.[1].normalizeToNew() || Vector3.Forward();
+
+    // Target points from ankle to toe
+    const target = footIndex.subtract(ankle);
+
+    // Calculate foot's natural cross direction for twist
+    const heelToToe = footIndex.subtract(heel).normalize();
+    const targetBackward = Vector3.Cross(target.normalizeToNew(), heelToToe);
+
+    return [boneUp, boneBackward, target, targetBackward];
+  },
+  children: [],
+}));
+
+const boneLowerLegs: BoneMapping[] = [true, false].map(isLeft => ({
+  boneNames: [isLeft ? 'Foot.L' : 'Foot.R', isLeft ? 'LowerLeg.L' : 'LowerLeg.R'],
+  getDef: (r, defParent) => {
+    const knee = r.getPoseLandmark(isLeft ? 25 : 26);
+    const ankle = r.getPoseLandmark(isLeft ? 27 : 28);
+    const heel = r.getPoseLandmark(isLeft ? 29 : 30);
+    if (!knee || !ankle || !heel) return undefined;
+
+    // Bone up points from knee to hip (from parent)
+    const boneUp = defParent?.[2].normalizeToNew() || Vector3.Up();
+    const boneBackward = defParent?.[1].normalizeToNew() || Vector3.Forward();
+
+    // Target from knee to ankle
+    const target = ankle.subtract(knee);
+
+    return [boneUp, boneBackward, target, undefined];
+  },
+  children: [boneFeet[isLeft ? 0 : 1]],
+}));
+
+const boneUpperLegs: BoneMapping[] = [true, false].map(isLeft => ({
+  boneNames: [isLeft ? 'UpperLeg.L' : 'UpperLeg.R'],
+  getDef: (r, defParent) => {
+    const hipLeft = r.getPoseLandmark(23);
+    const hipRight = r.getPoseLandmark(24);
+    const hip = r.getPoseLandmark(isLeft ? 23 : 24);
+    const knee = r.getPoseLandmark(isLeft ? 25 : 26);
+    if (!hip || !hipLeft || !hipRight || !knee) return undefined;
+
+    // Bone up: direction along spine (from hips upward)
+    // This is the parent's target direction (hip→shoulder), which points upward
+    const boneUp = defParent?.[2].normalizeToNew() || Vector3.Up();
+
+    // Bone backward: inherited from spine (forward/backward orientation)
+    const boneBackward = defParent?.[1].normalizeToNew() || Vector3.Forward();
+
+    // Target: from hip to knee (thigh direction)
+    const target = knee.subtract(hip);
+
+    // Target backward: use hip line to define leg's lateral orientation
+    const hipLine = hipRight.subtract(hipLeft).normalize();
+    // Cross product of target with hip line gives the knee's bend direction
+    const targetBackward = Vector3.Cross(target.normalizeToNew(), hipLine);
+
+    // Debug logging for left leg
+    if (isLeft && Math.random() < 0.01) { // Log 1% of frames
+      console.log('=== Left Upper Leg Debug ===');
+      console.log('Hip:', hip.toString());
+      console.log('Knee:', knee.toString());
+      console.log('Target (hip→knee):', target.toString());
+      console.log('Target normalized:', target.normalizeToNew().toString());
+      console.log('Hip line:', hipLine.toString());
+      console.log('Target backward:', targetBackward.toString());
+      console.log('Bone up:', boneUp.toString());
+      console.log('Bone backward:', boneBackward.toString());
+    }
+
+    return [boneUp, boneBackward, target, targetBackward];
+  },
+  children: [boneLowerLegs[isLeft ? 0 : 1]],
+}));
+
 const boneHands: BoneMapping[] = [true, false].map(isLeft => ({
   boneNames: [isLeft ? 'Hand.L' : 'Hand.R'],
   getDef: (r, defParent) => {
@@ -70,15 +162,23 @@ const boneHands: BoneMapping[] = [true, false].map(isLeft => ({
     const fingerLittle = r.getPoseLandmark(isLeft ? 17 : 18);
     if (!elbow || !wrist || !fingerIndex || !fingerLittle) return undefined;
 
+    // Bone up: direction from elbow to wrist (along forearm)
     const boneUp = wrist.subtract(elbow).normalize();
+
+    // Bone backward: inherited from parent (forearm orientation)
     const boneBackward = defParent?.[1].normalizeToNew() || Vector3.Up();
 
+    // Target: center of hand (between index and pinky)
     const handCenter = Vector3.Center(fingerIndex, fingerLittle);
     const target = handCenter.subtract(wrist);
+
+    // Calculate palm orientation
+    // Fingers vector points from index to pinky (left hand) or pinky to index (right hand)
     const fingers = (isLeft
       ? fingerLittle.subtract(fingerIndex)
-      : fingerIndex.subtract(fingerLittle)).normalize()
-    // Negate cross product to flip hand orientation (front camera correction)
+      : fingerIndex.subtract(fingerLittle)).normalize();
+
+    // Cross product gives palm normal, negated for front-facing camera correction
     const targetBackward = Vector3.Cross(target.normalizeToNew(), fingers).negate();
 
     return [boneUp, boneBackward, target, targetBackward];
@@ -92,14 +192,21 @@ const boneLowerArms: BoneMapping[] = [true, false].map(isLeft => ({
     const elbow = r.getPoseLandmark(isLeft ? 13 : 14);
     const wrist = r.getPoseLandmark(isLeft ? 15 : 16);
     if (!shoulder || !elbow || !wrist) return undefined;
+
+    // Bone up: points along upper arm from shoulder to elbow
     const boneUp = elbow.subtract(shoulder).normalize();
+
+    // Bone backward: inherited from upper arm's orientation
     const boneBackward = defParent?.[1].normalizeToNew() || Vector3.Up();
+
+    // Target: from elbow to wrist (forearm direction)
     const target = wrist.subtract(elbow);
 
     return [boneUp, boneBackward, target, undefined];
   },
   children: [boneHands[isLeft ? 0 : 1]],
 }));
+
 const boneUpperArms: BoneMapping[] = [true, false].map(isLeft => ({
   boneNames: [isLeft ? 'UpperArm.L' : 'UpperArm.R'],
   getDef: (r, defParent) => {
@@ -107,17 +214,23 @@ const boneUpperArms: BoneMapping[] = [true, false].map(isLeft => ({
     const shoulder = r.getPoseLandmark(isLeft ? 11 : 12);
     const elbow = r.getPoseLandmark(isLeft ? 13 : 14);
     if (!shoulder || !shoulderOther || !elbow) return undefined;
+
+    // Bone up: direction across shoulders (this shoulder to opposite shoulder)
+    // This defines the "roll" axis of the upper arm
     const boneUp = shoulder.subtract(shoulderOther).normalize();
+
+    // Bone backward: inherited from torso's spine orientation
     const boneBackward = defParent?.[0].normalizeToNew() || Vector3.Up();
+
+    // Target: from shoulder to elbow (upper arm direction)
     const target = elbow.subtract(shoulder);
 
-    // Debug logging for left arm
-    if (isLeft && Math.random() < 0.02) { // Log 2% of frames
+    // Debug logging for left arm (optional - can be removed for production)
+    if (isLeft && Math.random() < 0.01) { // Log 1% of frames to reduce spam
       console.log('=== Left Upper Arm Debug ===');
-      console.log('Shoulder (MediaPipe):', shoulder.toString());
-      console.log('Elbow (MediaPipe):', elbow.toString());
+      console.log('Shoulder:', shoulder.toString());
+      console.log('Elbow:', elbow.toString());
       console.log('Target (elbow-shoulder):', target.toString());
-      console.log('Target length:', target.length());
       console.log('Target normalized:', target.normalizeToNew().toString());
     }
 
@@ -134,17 +247,23 @@ const boneHead: BoneMapping = {
     const eyeRight = r.getFaceLandmark(FaceEyeRight);
     const chin = r.getFaceLandmark(FaceChin);
     if (!shoulderLeft || !shoulderRight || !eyeLeft || !eyeRight || !chin) return undefined;
+
+    // Bone up and backward from parent neck, or defaults if no parent
     var boneUp, boneBackward;
     if (!defParent) {
       boneUp = Vector3.Up();
       boneBackward = Vector3.Backward();
     } else {
+      // Inherit from neck: up = neck's target direction, backward = neck's backward
       boneUp = defParent[2].normalizeToNew();
       boneBackward = defParent[1];
     }
 
+    // Target: from chin to eye center (head vertical axis)
     const eyeCenter = Vector3.Center(eyeRight, eyeLeft);
     const target = eyeCenter.subtract(chin).normalize();
+
+    // Target backward: head's facing direction from eye line
     const eyeLine = eyeRight.subtract(eyeLeft).normalize();
     const targetBackward = Vector3.Cross(eyeLine, target).normalize();
 
@@ -152,6 +271,7 @@ const boneHead: BoneMapping = {
   },
   children: [],
 };
+
 const boneNeck: BoneMapping = {
   boneNames: ['Neck'],
   getDef: (r, defParent) => {
@@ -160,10 +280,15 @@ const boneNeck: BoneMapping = {
     const eyeLeft = r.getFaceLandmark(FaceEyeLeft);
     const eyeRight = r.getFaceLandmark(FaceEyeRight);
     if (!shoulderLeft || !shoulderRight || !eyeLeft || !eyeRight) return undefined;
+
+    // Bone up: inherited from spine (points upward along torso)
     const boneUp = defParent?.[2]?.normalizeToNew() || Vector3.Up();
+
+    // Bone backward: perpendicular to shoulder line and up direction
     const shoulder = shoulderRight.subtract(shoulderLeft).normalize();
     const boneBackward = Vector3.Cross(boneUp, shoulder).normalize();
 
+    // Target: from shoulder center to eye center (neck direction)
     const eyeCenter = Vector3.Center(eyeRight, eyeLeft);
     const shoulderCenter = Vector3.Center(shoulderLeft, shoulderRight);
     const target = eyeCenter.subtract(shoulderCenter);
@@ -172,7 +297,8 @@ const boneNeck: BoneMapping = {
   },
   children: [boneHead],
 };
-const boneBack: BoneMapping = {
+// Factory function to create spine bone with optional leg children
+const createBoneBack = (includeLegs: boolean): BoneMapping => ({
   boneNames: ['Spine', 'Chest', 'UpperChest'],
   getDef: (r, defParent) => {
     const hipLeft = r.getPoseLandmark(23);
@@ -180,14 +306,28 @@ const boneBack: BoneMapping = {
     const shoulderLeft = r.getPoseLandmark(11);
     const shoulderRight = r.getPoseLandmark(12);
     if (!hipLeft || !hipRight || !shoulderLeft || !shoulderRight) return undefined;
+
+    // Hip line direction (left to right)
     const hip = hipRight.subtract(hipLeft).normalize();
+
+    // Shoulder line direction (left to right)
     const shoulder = shoulderRight.subtract(shoulderLeft).normalize();
+
+    // Centers for spine target calculation
     const shoulderCenter = Vector3.Center(shoulderLeft, shoulderRight);
     const hipCenter = Vector3.Center(hipLeft, hipRight);
 
+    // Bone up: world up (spine points upward)
     const boneUp = Vector3.Up();
+
+    // Bone backward: cross product of hip line and up gives forward direction
+    // Negate to get backward
     const boneBackward = Vector3.Cross(hip, boneUp).normalize();
+
+    // Target: from hips to shoulders (spine direction)
     const target = shoulderCenter.subtract(hipCenter);
+
+    // Target backward: twist based on shoulder orientation
     const targetBackward = Vector3.Cross(shoulder, target.normalizeToNew()).normalize();
 
     return [boneUp, boneBackward, target, targetBackward];
@@ -195,28 +335,57 @@ const boneBack: BoneMapping = {
   children: [
     boneNeck,
     ...boneUpperArms,
+    ...(includeLegs ? boneUpperLegs : []),
   ],
-};
+});
 
-const rootBone = boneBack;
-
+// Collect all bone names from hierarchy (including legs)
 export const allBoneNames: string[] = [];
 const getAllBoneNames = (bone: BoneMapping) => {
   bone.boneNames.forEach(boneName => allBoneNames.push(boneName));
   bone.children?.forEach(bone => getAllBoneNames(bone));
 }
-getAllBoneNames(rootBone);
+getAllBoneNames(createBoneBack(true)); // Collect all names including legs
+
+// Neutral pose quaternions (identity = no rotation)
+const NEUTRAL_POSES: { [boneName: string]: { x: number, y: number, z: number, w: number } } = {
+  'UpperLeg.L': { x: 0, y: 0, z: 0, w: 1 },  // Straight down
+  'UpperLeg.R': { x: 0, y: 0, z: 0, w: 1 },
+  'LowerLeg.L': { x: 0, y: 0, z: 0, w: 1 },
+  'LowerLeg.R': { x: 0, y: 0, z: 0, w: 1 },
+  'Foot.L': { x: 0, y: 0, z: 0, w: 1 },
+  'Foot.R': { x: 0, y: 0, z: 0, w: 1 },
+  'Toes.L': { x: 0, y: 0, z: 0, w: 1 },
+  'Toes.R': { x: 0, y: 0, z: 0, w: 1 },
+  'UpperArm.L': { x: 0, y: 0, z: 0, w: 1 },  // Arms at sides
+  'UpperArm.R': { x: 0, y: 0, z: 0, w: 1 },
+  'LowerArm.L': { x: 0, y: 0, z: 0, w: 1 },
+  'LowerArm.R': { x: 0, y: 0, z: 0, w: 1 },
+  'Hand.L': { x: 0, y: 0, z: 0, w: 1 },
+  'Hand.R': { x: 0, y: 0, z: 0, w: 1 },
+};
+
+interface BoneState {
+  lastUpdateTime: number;
+  currentRotation: Quaternion;
+}
 
 export class Capturer {
   options: GameOptions;
   bonePrevDef: { [boneName: string]: BoneDefinition } = {};
   readonly kalmanState: KalmanState = {};
+  private boneStates: { [boneName: string]: BoneState } = {};
+  private neutralReturnSpeed = 0.05; // 5% interpolation per frame toward neutral
 
   constructor(options: GameOptions) { this.options = options }
 
   capture(r: Results, updates: SkeletonUpdate, options: GameOptions): boolean {
     const cachedPoseLandmarks: { [index: number]: Vector3 } = {};
     const cachedFaceLandmarks: { [index: number]: Vector3 } = {};
+
+    // Create root bone dynamically based on renderLegs flag
+    const rootBone = createBoneBack(options.renderLegs.current);
+
     return this.captureBonesRecursively(
       {
         getPoseLandmark: index => this.getPoseLandmark(r, index, cachedPoseLandmarks),
@@ -234,8 +403,7 @@ export class Capturer {
     var def = boneEnabled ? bone.getDef(r, defParent) : undefined;
     const firstBoneName = bone.boneNames[bone.boneNames.length - 1];
 
-    // Don't use previous definitions for bones - if not detected, don't update
-    // This prevents hands from staying in weird positions when not visible
+    const currentTime = Date.now();
 
     if (def !== undefined) {
       const [boneUp, boneBackward, target, targetBackward] = def;
@@ -290,11 +458,48 @@ export class Capturer {
       // const boneLengthScaled = numBones === 1 ? boneLength : boneLength / numBones;
 
       changed = true;
-      bone.boneNames.forEach(boneName => updates.push({
-        n: boneName,
-        // s: boneLengthScaled, TODO fixup and re-enable scaling
-        q: rotationScaled,
-      }));
+      bone.boneNames.forEach(boneName => {
+        updates.push({
+          n: boneName,
+          // s: boneLengthScaled, TODO fixup and re-enable scaling
+          q: rotationScaled,
+        });
+
+        // Update bone state tracking
+        this.boneStates[boneName] = {
+          lastUpdateTime: currentTime,
+          currentRotation: rotationScaled.clone(),
+        };
+      });
+    } else {
+      // Bone not detected - interpolate toward neutral pose if applicable
+      bone.boneNames.forEach(boneName => {
+        const neutralPose = NEUTRAL_POSES[boneName];
+        if (neutralPose) {
+          const boneState = this.boneStates[boneName];
+
+          // If bone was recently tracked, interpolate toward neutral
+          if (boneState && (currentTime - boneState.lastUpdateTime < 5000)) {
+            const neutralQuat = new Quaternion(neutralPose.x, neutralPose.y, neutralPose.z, neutralPose.w);
+
+            // Slerp toward neutral (exponential decay)
+            const interpolated = Quaternion.Slerp(
+              boneState.currentRotation,
+              neutralQuat,
+              this.neutralReturnSpeed
+            );
+
+            boneState.currentRotation = interpolated;
+
+            updates.push({
+              n: boneName,
+              q: interpolated,
+            });
+
+            changed = true;
+          }
+        }
+      });
     }
 
     // Pass the current definition to children (not previous cached ones)

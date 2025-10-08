@@ -94,6 +94,32 @@ Server (server.ts)
 - `server-update-client-*`: Broadcasts from server to clients
 - `server-update-client-disconnected`: Player left
 
+## Body Part Tracking Coverage
+
+### Tracked Body Parts
+
+**Upper Body:**
+- Spine/Chest/UpperChest: Hip center → Shoulder center
+- Neck: Shoulder center → Eye center
+- Head: Chin → Eye center
+- UpperArm.L/R: Shoulder → Elbow
+- LowerArm.L/R: Elbow → Wrist
+- Hand.L/R: Wrist → Hand center (index & pinky midpoint)
+
+**Lower Body (Optional - Feature Flag):**
+- UpperLeg.L/R: Hip → Knee
+- LowerLeg.L/R & Foot.L/R: Knee → Ankle
+- Toes.L/R: Ankle → Foot index (toe)
+- **Note:** Leg tracking is disabled by default (`renderLegs: false`) and can be enabled in debug menu
+
+**MediaPipe Landmark Indices:**
+```
+Upper body: 11,12 (shoulders), 13,14 (elbows), 15,16 (wrists)
+Hands: 17,18 (pinky), 19,20 (index finger)
+Lower body: 23,24 (hips), 25,26 (knees), 27,28 (ankles)
+Feet: 29,30 (heels), 31,32 (foot index/toes)
+```
+
 ## Critical Implementation Details
 
 ### MediaPipe Coordinate System Transformations
@@ -153,6 +179,7 @@ Access via `App.tsx` when `isProd()` returns false:
 **Available controls:**
 - Preview toggle: Shows/hides webcam preview with skeleton overlay
 - Face/Bones rendering: Enable/disable face mesh or skeleton tracking
+- Legs toggle: Enable/disable leg tracking (default OFF - experimental)
 - Bone debug: Visualize individual bone transformations
 - Face refresh rate: 1-60 Hz (affects texture update frequency)
 - Z-axis mode: Switch coordinate transformation modes for testing

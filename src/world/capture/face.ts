@@ -88,8 +88,18 @@ export const captureFace = (results: Results, body: Body, options: GameOptions):
     (eyeLeftLandmark.z + eyeRightLandmark.z) / 2
   );
 
-  // 180-degree rotation around Y-axis to flip face forward (face landmarks are backwards)
-  const originRotation = Quaternion.RotationAxis(Vector3.Up(), Math.PI);
+  // Calculate 3D eye distance (including Z depth)
+  // 3D distance is stable regardless of head tilt/rotation
+  // 2D distance changes when head tilts due to perspective
+  const eyeDistanceRaw = Math.sqrt(
+    Math.pow(eyeRightLandmark.x - eyeLeftLandmark.x, 2) +
+    Math.pow(eyeRightLandmark.y - eyeLeftLandmark.y, 2) +
+    Math.pow(eyeRightLandmark.z - eyeLeftLandmark.z, 2)
+  );
+  const eyeDistance = Math.max(eyeDistanceRaw, 0.01); // Prevent division by zero
+
+  // No quaternion rotation - we'll flip the geometry directly to avoid double-rotation
+  const originRotation = Quaternion.Identity();
   face.mesh.q = {
     x: originRotation.x,
     y: originRotation.y,
@@ -102,14 +112,12 @@ export const captureFace = (results: Results, body: Body, options: GameOptions):
   const translation = new Vector3(0, 0.15, 0.15); // Y lowered ~50%, Z moved forward 5%
   face.mesh.p = { x: translation.x, y: translation.y, z: translation.z };
 
-  // Scale face based on a fixed reference size
-  // Use the raw landmark distance before 3D transformation to avoid perspective issues
-  const eyeDistanceRaw = Math.sqrt(
-    Math.pow(eyeRightLandmark.x - eyeLeftLandmark.x, 2) +
-    Math.pow(eyeRightLandmark.y - eyeLeftLandmark.y, 2)
-  );
-  // Use a fixed scale that doesn't change with head tilt
-  const scaleFactor = 0.14 / Math.max(eyeDistanceRaw, 0.1); // Clamp minimum to avoid division issues
+  // Scale entire mesh inversely proportional to eye distance
+  // When closer to camera (larger eye distance), scale down
+  // When farther from camera (smaller eye distance), scale up
+  // This keeps the 3D head mesh at constant size regardless of camera distance
+  const targetEyeDistance = 0.14; // Reference eye distance for normalization
+  const scaleFactor = targetEyeDistance / eyeDistance;
   // debugAxesTool.update({ name: 'faceWorldForward', boneName: 'Head', direction: Vector3.Forward(), color: Color3.FromInts(0, 153, 0 /* Dark green */) });
   // debugAxesTool.update({ name: 'faceWorldUp', boneName: 'Head', direction: Vector3.Up(), color: Color3.FromInts(153, 0, 0 /* Dark red */) });
   // debugAxesTool.update({ name: 'faceWorldRight', boneName: 'Head', direction: Vector3.Right(), color: Color3.FromInts(0, 0, 153 /* Dark blue */) });
@@ -122,9 +130,15 @@ export const captureFace = (results: Results, body: Body, options: GameOptions):
     // Process landmarks without applying rotation (rotation handled by mesh quaternion)
     const point = new Vector3(landmark.x, landmark.y, landmark.z);
     point.subtractInPlace(eyeCenter);
+
+    // Apply uniform scaling to all coordinates (X, Y, Z)
+    // This maintains face proportions while normalizing size
     point.scaleInPlace(scaleFactor);
-    // Invert z but don't add offset
-    point.z = -point.z;
+
+    // Mirror face horizontally (negate X only)
+    // MediaPipe face landmarks need horizontal flip to face forward
+    point.x = -point.x;
+
     face.mesh.positions.push(point.x, point.y, point.z);
     // Only add UVs if we have a texture
     if (face.texture) {
@@ -136,6 +150,7 @@ export const captureFace = (results: Results, body: Body, options: GameOptions):
   });
 
   // Store the face mesh indices
+  // The original indices work correctly with the X-axis flip
   face.mesh.indices = FaceMeshIndices;
 
   VertexData.ComputeNormals(

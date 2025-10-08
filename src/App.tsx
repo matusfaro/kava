@@ -14,6 +14,7 @@ export interface GameOptions {
   skeletonScaling: React.MutableRefObject<boolean>;
   faceRefreshRate: React.MutableRefObject<number>;
   zAxisMode: React.MutableRefObject<'normal' | 'negated' | 'original'>;
+  renderLegs: React.MutableRefObject<boolean>;
 }
 
 function App() {
@@ -31,6 +32,7 @@ function App() {
   const skeletonScalingRef = useRef<boolean>(debug ? false : true);
   const faceRefreshRateRef = useRef<number>(30);
   const zAxisModeRef = useRef<'normal' | 'negated' | 'original'>('normal');
+  const renderLegsRef = useRef<boolean>(false);
   const [options] = useState<GameOptions>({
     skeletonRotations: skeletonRotationsRef,
     skeletonScaling: skeletonScalingRef,
@@ -41,6 +43,7 @@ function App() {
     renderBones: renderBonesRef,
     faceRefreshRate: faceRefreshRateRef,
     zAxisMode: zAxisModeRef,
+    renderLegs: renderLegsRef,
   });
   return (
     <>
@@ -73,6 +76,7 @@ function App() {
               ['preview', previewRef],
               ['face', renderFaceRef],
               ['bones', renderBonesRef],
+              ['legs', renderLegsRef],
               ['skltnRota', skeletonRotationsRef],
               ['skltnScal', skeletonScalingRef],
               ['debugBone', boneDebugRef],
@@ -98,7 +102,7 @@ function App() {
                 type="number"
                 min="1"
                 max="60"
-                defaultValue={30}
+                defaultValue={3}
                 style={{ width: '60px' }}
                 onChange={e => {
                   const rate = parseInt(e.target.value) || 30;

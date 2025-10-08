@@ -37,8 +37,8 @@ export const Camera = (props: {
           setCameraReady(true);
         }
       }}
-      alpha={cameraRef.current ? cameraRef.current.alpha : -Math.PI / 2}
-      beta={cameraRef.current ? cameraRef.current.beta : Math.PI / 2.5}
+      alpha={cameraRef.current ? cameraRef.current.alpha : -Math.PI / 2 - Math.PI / 8}
+      beta={cameraRef.current ? cameraRef.current.beta : Math.PI / 2.2}
       target={props.player ? new Vector3(props.player.position.x, props.player.position.y + 1, props.player.position.z) : new Vector3(-8, 2, 25)}
       position={cameraRef.current?.position}
       wheelPrecision={15}
@@ -49,7 +49,7 @@ export const Camera = (props: {
       keysDown={[]}
       lowerRadiusLimit={2}
       upperRadiusLimit={20}
-      radius={cameraRef.current ? cameraRef.current.radius : 10}
+      radius={cameraRef.current ? cameraRef.current.radius : 5}
     />
   );
 };
