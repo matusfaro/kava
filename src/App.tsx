@@ -25,7 +25,7 @@ function App() {
   const [enableVideo, setEnableVideo] = useState(true);
   const boneDebugRef = useRef<boolean>(debug ? false : false);
   const boneNameRef = useRef<string | undefined>(debug ? undefined : undefined);
-  const previewRef = useRef<boolean>(debug ? true : false);
+  const previewRef = useRef<boolean>(false);
   const renderFaceRef = useRef<boolean>(debug ? true : true);
   const renderBonesRef = useRef<boolean>(debug ? true : true);
   const skeletonRotationsRef = useRef<boolean>(debug ? true : true);

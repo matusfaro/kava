@@ -32,6 +32,7 @@ const updateFace = (scene: Scene, faceRef: React.MutableRefObject<{ face: Mesh, 
     const material = new StandardMaterial(`${player.name}-face`, scene);
     material.diffuseTexture = faceRef.current.texture;
     material.specularColor = new Color3(0, 0, 0); // No specular on the face
+    material.backFaceCulling = false; // Render both sides of the face
     faceRef.current.face.material = material;
 
     // Hide head meshes when face is created

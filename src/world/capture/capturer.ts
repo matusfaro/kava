@@ -393,7 +393,7 @@ const boneUpperArms: BoneMapping[] = [true, false].map(isLeft => ({
 // Static head tilt configuration (degrees)
 const HEAD_TILT_DEFAULT = 30; // Degrees forward tilt for head
 
-const createBoneHead = (options: GameOptions): BoneMapping => ({
+const createBoneHead = (options?: GameOptions): BoneMapping => ({
     boneNames: ['Head'],
     getDef: (r, defParent) => {
         const shoulderLeft = r.getPoseLandmark(11);
@@ -436,7 +436,7 @@ const createBoneHead = (options: GameOptions): BoneMapping => ({
 // Static neck tilt configuration (degrees)
 const NECK_TILT_DEFAULT = 40; // Degrees forward tilt for neck
 
-const createBoneNeck = (options: GameOptions): BoneMapping => ({
+const createBoneNeck = (options?: GameOptions): BoneMapping => ({
     boneNames: ['Neck'],
     getDef: (r, defParent) => {
         const shoulderLeft = r.getPoseLandmark(11);
@@ -478,7 +478,7 @@ const createBoneNeck = (options: GameOptions): BoneMapping => ({
     children: [createBoneHead(options)],
 });
 // Factory function to create spine bone with optional leg children
-const createBoneBack = (includeLegs: boolean, options: GameOptions): BoneMapping => ({
+const createBoneBack = (includeLegs: boolean, options?: GameOptions): BoneMapping => ({
     boneNames: ['Spine', 'Chest', 'UpperChest'],
     getDef: (r, defParent) => {
         const hipLeft = r.getPoseLandmark(23);
@@ -525,20 +525,7 @@ const getAllBoneNames = (bone: BoneMapping) => {
     bone.boneNames.forEach(boneName => allBoneNames.push(boneName));
     bone.children?.forEach(bone => getAllBoneNames(bone));
 }
-// Create dummy options for bone name collection
-const dummyOptions: GameOptions = {
-    boneDebug: {current: false},
-    boneName: {current: undefined},
-    preview: {current: false},
-    renderFace: {current: true},
-    renderBones: {current: true},
-    skeletonRotations: {current: true},
-    skeletonScaling: {current: true},
-    processingRate: {current: 10},
-    renderLegs: {current: false},
-    imageQuality: {current: 30},
-};
-getAllBoneNames(createBoneBack(true, dummyOptions)); // Collect all names including legs
+getAllBoneNames(createBoneBack(true)); // Collect all names including legs
 
 // Helper to convert Quaternion to plain object
 const toQuatObj = (q: Quaternion) => ({x: q.x, y: q.y, z: q.z, w: q.w});

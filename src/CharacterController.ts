@@ -678,7 +678,7 @@ export class CharacterController {
     let anim: ActionData = null;
     const dt: number = this._scene.getEngine().getDeltaTime() / 1000;
 
-    if (this._act._jump && !this._inFreeFall) {
+    if (this._act._jump) {  // Removed !this._inFreeFall check to enable infinite jumping
       this._grounded = false;
       this._idleFallTime = 0;
       anim = this._doJump(dt);
@@ -728,17 +728,38 @@ export class CharacterController {
     let jumpDist: number = 0;
     let disp: Vector3;
     if (this._mode != 1 && !this._noRot) this._avatar.rotation.y = this._av2cam - this._camera.alpha;
-    if (this._wasRunning || this._wasWalking) {
-      if (this._wasRunning) {
-        forwardDist = this._actionMap.run.speed * dt;
-      } else if (this._wasWalking) {
-        forwardDist = this._actionMap.walk.speed * dt;
+
+    // Check for real-time movement input during jump (air control)
+    const isMoving = this.anyMovement();
+
+    if (isMoving) {
+      // Calculate horizontal movement based on current input
+      let horizDist: number = 0;
+      let sign: number;
+
+      switch (true) {
+        case (this._act._stepLeft):
+          sign = this._signRHS * this._isAvFacingCamera();
+          horizDist = this._act._speedMod ? this._actionMap.strafeLeftFast.speed * dt : this._actionMap.strafeLeft.speed * dt;
+          disp = this._avatar.calcMovePOV(sign * horizDist, 0, 0);
+          break;
+        case (this._act._stepRight):
+          sign = -this._signRHS * this._isAvFacingCamera();
+          horizDist = this._act._speedMod ? this._actionMap.strafeRightFast.speed * dt : this._actionMap.strafeRight.speed * dt;
+          disp = this._avatar.calcMovePOV(sign * horizDist, 0, 0);
+          break;
+        case (this._act._walk):
+          horizDist = this._act._speedMod ? this._actionMap.run.speed * dt : this._actionMap.walk.speed * dt;
+          disp = this._avatar.calcMovePOV(0, 0, this._ffSign * horizDist);
+          break;
+        case (this._act._walkback):
+          horizDist = this._act._speedMod ? this._actionMap.walkBackFast.speed * dt : this._actionMap.walkBack.speed * dt;
+          disp = this._avatar.calcMovePOV(0, 0, -this._ffSign * horizDist);
+          break;
+        default:
+          disp = new Vector3(0, 0, 0);
       }
-      //find out in which horizontal direction the AV was moving when it started the jump
-      disp = this._moveVector.clone();
-      disp.y = 0;
-      disp = disp.normalize();
-      disp.scaleToRef(forwardDist, disp);
+
       jumpDist = this._calcJumpDist(this._actionMap.runJump.speed, dt);
       disp.y = jumpDist;
     } else {
@@ -1198,6 +1219,10 @@ export class CharacterController {
     switch (e.key.toLowerCase()) {
       case this._actionMap.idleJump.key:
         this._act._jump = true;
+        // Reset jump time to allow jumping while already jumping (infinite/multi-jump)
+        if (this._jumpTime > 0) {
+          this._jumpTime = 0;
+        }
         break;
       case "capslock":
         this._act._speedMod = !this._act._speedMod;

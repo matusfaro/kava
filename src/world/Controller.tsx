@@ -54,8 +54,9 @@ export const Controller = (props: {
 
         controller.setTurningOff(true);
 
-        const speed = 4;
-        const speedFast = 10;
+        const speed = 10;  // Increased from 4
+        const speedFast = 15;  // Increased from 10
+        const jumpSpeed = 10;  // Reduced jump height
         controller.setGravity(9.8);    //default 9.8 m/s^2
         controller.setWalkSpeed(speed);  //default 3 m/s
         controller.setRunSpeed(speedFast);   //default 6 m/s
