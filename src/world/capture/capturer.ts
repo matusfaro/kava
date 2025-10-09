@@ -672,7 +672,8 @@ export class Capturer {
 
     captureBonesRecursively(r: ResultsWrapped, updates: SkeletonUpdate, options: GameOptions, changed: boolean, bone: BoneMapping, defParent?: BoneDefinition): boolean {
         const boneEnabled = !options.boneName.current || bone.boneNames.some(boneName => boneName === options.boneName.current);
-        var def = boneEnabled ? bone.getDef(r, defParent) : undefined;
+        // If forceNeutralPose is enabled, skip bone detection and use neutral pose
+        var def = (boneEnabled && !options.forceNeutralPose.current) ? bone.getDef(r, defParent) : undefined;
         const firstBoneName = bone.boneNames[bone.boneNames.length - 1];
 
         const currentTime = Date.now();
@@ -778,15 +779,19 @@ export class Capturer {
                 if (neutralPose) {
                     const boneState = this.boneStates[boneName];
 
-                    // If bone was recently tracked, interpolate toward neutral
-                    if (boneState && (currentTime - boneState.lastUpdateTime < 5000)) {
+                    // If bone was recently tracked OR forceNeutralPose is enabled, interpolate toward neutral
+                    if (boneState && (options.forceNeutralPose.current || currentTime - boneState.lastUpdateTime < 5000)) {
                         const neutralQuat = new Quaternion(neutralPose.x, neutralPose.y, neutralPose.z, neutralPose.w);
+
+                        // When forceNeutralPose is ON, use faster interpolation for immediate feedback (30% per frame)
+                        // Otherwise use slow convergence (5% per frame)
+                        const interpolationSpeed = options.forceNeutralPose.current ? 0.3 : this.neutralReturnSpeed;
 
                         // Slerp toward neutral (exponential decay)
                         const interpolated = Quaternion.Slerp(
                             boneState.currentRotation,
                             neutralQuat,
-                            this.neutralReturnSpeed
+                            interpolationSpeed
                         );
 
                         boneState.currentRotation = interpolated;

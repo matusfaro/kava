@@ -210,7 +210,6 @@ export const captureTorso = (results: Results, body: Body, options: GameOptions)
           g: Math.round(g / pixelCount),
           b: Math.round(b / pixelCount)
         };
-        console.log('Sampled skin color from cheeks:', skinColor);
       }
     }
   }
@@ -258,7 +257,6 @@ export const captureTorso = (results: Results, body: Body, options: GameOptions)
         g: Math.round(g / pixelCount),
         b: Math.round(b / pixelCount)
       };
-      console.log('Sampled shirt color:', dominantColor);
     }
   }
 
@@ -308,7 +306,6 @@ export const captureTorso = (results: Results, body: Body, options: GameOptions)
           g: Math.round(g / pixelCount),
           b: Math.round(b / pixelCount)
         };
-        console.log('Sampled hair color:', hairColor);
       }
     }
   }
@@ -359,7 +356,6 @@ export const captureTorso = (results: Results, body: Body, options: GameOptions)
         g: Math.round(g / pixelCount),
         b: Math.round(b / pixelCount)
       };
-      console.log('Sampled pants color:', pantsColor);
     }
   }
 

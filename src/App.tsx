@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
+import { Quaternion } from '@babylonjs/core';
 import { isProd } from './util/detectEnv';
 import { useForceUpdate } from './util/reactUtil';
-import { allBoneNames, updateNeutralPose } from './world/capture/capturer';
+import { allBoneNames, neutralPoses, updateNeutralPose } from './world/capture/capturer';
 import Game from './world/Game';
 
 export interface GameOptions {
@@ -19,6 +20,7 @@ export interface GameOptions {
   neutralAngleX: React.MutableRefObject<number>; // X-axis rotation in degrees
   neutralAngleY: React.MutableRefObject<number>; // Y-axis rotation in degrees
   neutralAngleZ: React.MutableRefObject<number>; // Z-axis rotation in degrees
+  forceNeutralPose: React.MutableRefObject<boolean>; // Ignore camera and use neutral poses for all bones
 }
 
 function App() {
@@ -41,6 +43,7 @@ function App() {
   const neutralAngleXRef = useRef<number>(0); // X-axis rotation in degrees
   const neutralAngleYRef = useRef<number>(0); // Y-axis rotation in degrees
   const neutralAngleZRef = useRef<number>(0); // Z-axis rotation in degrees
+  const forceNeutralPoseRef = useRef<boolean>(false); // Force neutral pose for all bones
   const [options] = useState<GameOptions>({
     skeletonRotations: skeletonRotationsRef,
     skeletonScaling: skeletonScalingRef,
@@ -56,6 +59,7 @@ function App() {
     neutralAngleX: neutralAngleXRef,
     neutralAngleY: neutralAngleYRef,
     neutralAngleZ: neutralAngleZRef,
+    forceNeutralPose: forceNeutralPoseRef,
   });
   return (
     <>
@@ -87,6 +91,9 @@ function App() {
             }}>CLOSE DEBUG</button>
             <button onClick={() => setRunning(!running)}>{running ? 'STOP' : 'START'}</button>
             <button onClick={() => setEnableVideo(!enableVideo)}>{enableVideo ? 'video ON' : 'video OFF'}</button>
+            <button onClick={() => { forceNeutralPoseRef.current = !forceNeutralPoseRef.current; forceUpdate(); }}>
+              {forceNeutralPoseRef.current ? 'NEUTRAL POSE ON' : 'NEUTRAL POSE OFF'}
+            </button>
             {([
               ['preview', previewRef],
               ['face', renderFaceRef],
@@ -150,10 +157,24 @@ function App() {
               onChange={e => {
                 const boneName = e.target.value;
                 neutralBoneNameRef.current = boneName === 'None' ? undefined : boneName;
-                // Reset angles when selecting a new bone
-                neutralAngleXRef.current = 0;
-                neutralAngleYRef.current = 0;
-                neutralAngleZRef.current = 0;
+
+                if (boneName !== 'None') {
+                  // Load the current neutral pose values for this bone
+                  const currentPose = neutralPoses[boneName];
+                  if (currentPose) {
+                    // Convert quaternion to Euler angles (radians -> degrees)
+                    const quat = new Quaternion(currentPose.x, currentPose.y, currentPose.z, currentPose.w);
+                    const euler = quat.toEulerAngles();
+                    neutralAngleXRef.current = Math.round(euler.x * 180 / Math.PI);
+                    neutralAngleYRef.current = Math.round(euler.y * 180 / Math.PI);
+                    neutralAngleZRef.current = Math.round(euler.z * 180 / Math.PI);
+                  } else {
+                    // No neutral pose defined, default to zero
+                    neutralAngleXRef.current = 0;
+                    neutralAngleYRef.current = 0;
+                    neutralAngleZRef.current = 0;
+                  }
+                }
                 forceUpdate();
               }}
             >
