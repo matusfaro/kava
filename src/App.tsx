@@ -2,7 +2,13 @@ import React, { useRef, useState } from 'react';
 import { Quaternion } from '@babylonjs/core';
 import { isProd } from './util/detectEnv';
 import { useForceUpdate } from './util/reactUtil';
-import { allBoneNames, neutralPoses, updateNeutralPose } from './world/capture/capturer';
+import {
+  allBoneNames,
+  HEAD_TILT_DEFAULT,
+  NECK_TILT_DEFAULT,
+  neutralPoses, SPINE_TILT_DEFAULT,
+  updateNeutralPose
+} from './world/capture/capturer';
 import Game from './world/Game';
 
 export interface GameOptions {
@@ -21,6 +27,9 @@ export interface GameOptions {
   neutralAngleY: React.MutableRefObject<number>; // Y-axis rotation in degrees
   neutralAngleZ: React.MutableRefObject<number>; // Z-axis rotation in degrees
   forceNeutralPose: React.MutableRefObject<boolean>; // Ignore camera and use neutral poses for all bones
+  headTilt: React.MutableRefObject<number>; // Head forward tilt in degrees
+  neckTilt: React.MutableRefObject<number>; // Neck forward tilt in degrees
+  spineTilt: React.MutableRefObject<number>; // Spine backward tilt in degrees (negative = back)
 }
 
 function App() {
@@ -44,6 +53,9 @@ function App() {
   const neutralAngleYRef = useRef<number>(0); // Y-axis rotation in degrees
   const neutralAngleZRef = useRef<number>(0); // Z-axis rotation in degrees
   const forceNeutralPoseRef = useRef<boolean>(false); // Force neutral pose for all bones
+  const headTiltRef = useRef<number>(HEAD_TILT_DEFAULT); // Head forward tilt
+  const neckTiltRef = useRef<number>(NECK_TILT_DEFAULT); // Neck forward tilt
+  const spineTiltRef = useRef<number>(SPINE_TILT_DEFAULT); // Spine backward tilt
   const [options] = useState<GameOptions>({
     skeletonRotations: skeletonRotationsRef,
     skeletonScaling: skeletonScalingRef,
@@ -60,6 +72,9 @@ function App() {
     neutralAngleY: neutralAngleYRef,
     neutralAngleZ: neutralAngleZRef,
     forceNeutralPose: forceNeutralPoseRef,
+    headTilt: headTiltRef,
+    neckTilt: neckTiltRef,
+    spineTilt: spineTiltRef,
   });
   return (
     <>
@@ -149,6 +164,64 @@ function App() {
                   }}
                 />
                 <span style={{ fontSize: '12px', width: '35px' }}>{imageQualityRef.current}%</span>
+              </div>
+            </div>
+            <div style={{ fontSize: '14px', marginTop: 10, fontWeight: 'bold' }}>Body Tilts:</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <label htmlFor="headTilt" style={{ fontSize: '14px' }}>Head Tilt:</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <input
+                  id="headTilt"
+                  type="range"
+                  min="-90"
+                  max="90"
+                  step="1"
+                  value={headTiltRef.current}
+                  style={{ width: '100px' }}
+                  onChange={e => {
+                    headTiltRef.current = parseInt(e.target.value);
+                    forceUpdate();
+                  }}
+                />
+                <span style={{ fontSize: '12px', width: '40px' }}>{headTiltRef.current}°</span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <label htmlFor="neckTilt" style={{ fontSize: '14px' }}>Neck Tilt:</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <input
+                  id="neckTilt"
+                  type="range"
+                  min="-90"
+                  max="90"
+                  step="1"
+                  value={neckTiltRef.current}
+                  style={{ width: '100px' }}
+                  onChange={e => {
+                    neckTiltRef.current = parseInt(e.target.value);
+                    forceUpdate();
+                  }}
+                />
+                <span style={{ fontSize: '12px', width: '40px' }}>{neckTiltRef.current}°</span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <label htmlFor="spineTilt" style={{ fontSize: '14px' }}>Spine Tilt:</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <input
+                  id="spineTilt"
+                  type="range"
+                  min="-90"
+                  max="90"
+                  step="1"
+                  value={spineTiltRef.current}
+                  style={{ width: '100px' }}
+                  onChange={e => {
+                    spineTiltRef.current = parseInt(e.target.value);
+                    forceUpdate();
+                  }}
+                />
+                <span style={{ fontSize: '12px', width: '40px' }}>{spineTiltRef.current}°</span>
               </div>
             </div>
             <div style={{ fontSize: '14px', marginTop: 10, fontWeight: 'bold' }}>Neutral Pose Editor:</div>

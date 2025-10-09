@@ -6,6 +6,13 @@ import {FaceChin, FaceEyeLeft, FaceEyeRight} from "./faceConst";
 
 var Kalman = require('kalmanjs')
 
+// Static head tilt configuration (degrees)
+export const HEAD_TILT_DEFAULT = 50; // Degrees forward tilt for head
+// Static neck tilt configuration (degrees)
+export const NECK_TILT_DEFAULT = 60; // Degrees forward tilt for neck
+// Static spine tilt configuration (degrees)
+export const SPINE_TILT_DEFAULT = 45; // Degrees backward tilt for spine (negative = back)
+
 // Local type definitions for MediaPipe compatibility
 interface NormalizedLandmark {
     x: number;
@@ -415,9 +422,6 @@ const boneUpperArms: BoneMapping[] = [true, false].map(isLeft => ({
     },
     children: [boneLowerArms[isLeft ? 0 : 1]],
 }));
-// Static head tilt configuration (degrees)
-const HEAD_TILT_DEFAULT = 30; // Degrees forward tilt for head
-
 const createBoneHead = (options?: GameOptions): BoneMapping => ({
     boneNames: ['Head'],
     getDef: (r, defParent) => {
@@ -443,8 +447,9 @@ const createBoneHead = (options?: GameOptions): BoneMapping => ({
         const eyeCenter = Vector3.Center(eyeRight, eyeLeft);
         let target = eyeCenter.subtract(chin);
 
-        // Add static forward tilt for natural head position
-        const headTiltOffset = target.length() * Math.tan(HEAD_TILT_DEFAULT * Math.PI / 180);
+        // Add forward tilt for natural head position (from options or default)
+        const headTilt = options?.headTilt.current ?? HEAD_TILT_DEFAULT;
+        const headTiltOffset = target.length() * Math.tan(headTilt * Math.PI / 180);
         target.z += headTiltOffset; // Positive Z = forward tilt
 
         target.normalize();
@@ -457,9 +462,6 @@ const createBoneHead = (options?: GameOptions): BoneMapping => ({
     },
     children: [],
 });
-
-// Static neck tilt configuration (degrees)
-const NECK_TILT_DEFAULT = 40; // Degrees forward tilt for neck
 
 const createBoneNeck = (options?: GameOptions): BoneMapping => ({
     boneNames: ['Neck'],
@@ -494,8 +496,9 @@ const createBoneNeck = (options?: GameOptions): BoneMapping => ({
         // Negate Z for correct forward/backward head movement
         target.z = -target.z;
 
-        // Add static forward tilt for natural neck position
-        const forwardTiltOffset = target.length() * Math.tan(NECK_TILT_DEFAULT * Math.PI / 180);
+        // Add forward tilt for natural neck position (from options or default)
+        const neckTilt = options?.neckTilt.current ?? NECK_TILT_DEFAULT;
+        const forwardTiltOffset = target.length() * Math.tan(neckTilt * Math.PI / 180);
         target.z += forwardTiltOffset;
 
         return [boneUp, boneBackward, target, undefined];
@@ -530,7 +533,12 @@ const createBoneBack = (includeLegs: boolean, options?: GameOptions): BoneMappin
         const boneBackward = Vector3.Cross(hip, boneUp).normalize();
 
         // Target: from hips to shoulders (spine direction)
-        const target = shoulderCenter.subtract(hipCenter);
+        let target = shoulderCenter.subtract(hipCenter);
+
+        // Add backward tilt for natural spine position (from options or default)
+        const spineTilt = options?.spineTilt.current ?? SPINE_TILT_DEFAULT;
+        const spineTiltOffset = target.length() * Math.tan(spineTilt * Math.PI / 180);
+        target.z += spineTiltOffset; // Negative tilt = backward lean
 
         // Target backward: twist based on shoulder orientation
         const targetBackward = Vector3.Cross(shoulder, target.normalizeToNew()).normalize();
@@ -556,6 +564,7 @@ getAllBoneNames(createBoneBack(true)); // Collect all names including legs
 const toQuatObj = (q: Quaternion) => ({x: q.x, y: q.y, z: q.z, w: q.w});
 
 // Mutable neutral poses object with default values
+// X = right, Y = up, Z = forward
 export const neutralPoses: { [boneName: string]: { x: number, y: number, z: number, w: number } } = {
     'UpperLeg.L': {x: 0, y: 0, z: 0, w: 1},  // Straight down
     'UpperLeg.R': {x: 0, y: 0, z: 0, w: 1},
@@ -565,12 +574,8 @@ export const neutralPoses: { [boneName: string]: { x: number, y: number, z: numb
     'Foot.R': {x: 0, y: 0, z: 0, w: 1},
     'Toes.L': {x: 0, y: 0, z: 0, w: 1},
     'Toes.R': {x: 0, y: 0, z: 0, w: 1},
-    // UpperArm: Vertical lift angle (X-axis rotation)
-    // Default: -50° (arms pulled down/back at rest)
-    'UpperArm.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -50 * Math.PI / 180)),
-    'UpperArm.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -50 * Math.PI / 180)),
-    // LowerArm: Forward/backward rotation (Z-axis rotation)
-    // Default: 0° (straight/natural continuation of upper arm)
+    'UpperArm.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -50 * Math.PI / 180).multiply(Quaternion.RotationAxis(Vector3.Up(), 0 * Math.PI / 180)).multiply(Quaternion.RotationAxis(Vector3.Forward(), 15 * Math.PI / 180))),
+    'UpperArm.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -50 * Math.PI / 180).multiply(Quaternion.RotationAxis(Vector3.Up(), 0 * Math.PI / 180)).multiply(Quaternion.RotationAxis(Vector3.Forward(), 15 * Math.PI / 180))),
     'LowerArm.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -15 * Math.PI / 180).multiply(Quaternion.RotationAxis(Vector3.Up(), 0 * Math.PI / 180)).multiply(Quaternion.RotationAxis(Vector3.Forward(), 0 * Math.PI / 180))),
     'LowerArm.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -15 * Math.PI / 180).multiply(Quaternion.RotationAxis(Vector3.Up(), 0 * Math.PI / 180)).multiply(Quaternion.RotationAxis(Vector3.Forward(), 0 * Math.PI / 180))),
     'Hand.L': {x: 0, y: 0, z: 0, w: 1},
