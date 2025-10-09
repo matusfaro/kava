@@ -769,40 +769,55 @@ export class CharacterController {
     if (isMoving) {
       // Calculate horizontal movement based on current input
       let horizDist: number = 0;
-      let sign: number;
 
-      switch (true) {
-        case (this._act._stepLeft || this._act._turnLeft):
-          horizDist = this._act._speedMod ? this._actionMap.strafeLeftFast.speed * dt : this._actionMap.strafeLeft.speed * dt;
-          // If pure strafe (no forward/back), character is rotated 90° so move forward in local space
-          if (this._act._turnLeft && !this._act._walk && !this._act._walkback) {
+      // In strafe mode during jump, character rotates to face movement direction
+      // So always move forward in local space (Z-axis) to move in the desired world direction
+      if (this._noRot) {
+        switch (true) {
+          case (this._act._stepLeft || this._act._turnLeft):
+            horizDist = this._act._speedMod ? this._actionMap.strafeLeftFast.speed * dt : this._actionMap.strafeLeft.speed * dt;
             disp = this._avatar.calcMovePOV(0, 0, this._ffSign * horizDist);
-          } else {
+            break;
+          case (this._act._stepRight || this._act._turnRight):
+            horizDist = this._act._speedMod ? this._actionMap.strafeRightFast.speed * dt : this._actionMap.strafeRight.speed * dt;
+            disp = this._avatar.calcMovePOV(0, 0, this._ffSign * horizDist);
+            break;
+          case (this._act._walk):
+            horizDist = this._act._speedMod ? this._actionMap.run.speed * dt : this._actionMap.walk.speed * dt;
+            disp = this._avatar.calcMovePOV(0, 0, this._ffSign * horizDist);
+            break;
+          case (this._act._walkback):
+            horizDist = this._act._speedMod ? this._actionMap.walkBackFast.speed * dt : this._actionMap.walkBack.speed * dt;
+            disp = this._avatar.calcMovePOV(0, 0, this._ffSign * horizDist);
+            break;
+          default:
+            disp = new Vector3(0, 0, 0);
+        }
+      } else {
+        // Non-strafe mode: use original movement logic
+        let sign: number;
+        switch (true) {
+          case (this._act._stepLeft || this._act._turnLeft):
+            horizDist = this._act._speedMod ? this._actionMap.strafeLeftFast.speed * dt : this._actionMap.strafeLeft.speed * dt;
             sign = this._signRHS * this._isAvFacingCamera();
             disp = this._avatar.calcMovePOV(sign * horizDist, 0, 0);
-          }
-          break;
-        case (this._act._stepRight || this._act._turnRight):
-          horizDist = this._act._speedMod ? this._actionMap.strafeRightFast.speed * dt : this._actionMap.strafeRight.speed * dt;
-          // If pure strafe (no forward/back), character is rotated 90° so move forward in local space
-          if (this._act._turnRight && !this._act._walk && !this._act._walkback) {
-            disp = this._avatar.calcMovePOV(0, 0, this._ffSign * horizDist);
-          } else {
+            break;
+          case (this._act._stepRight || this._act._turnRight):
+            horizDist = this._act._speedMod ? this._actionMap.strafeRightFast.speed * dt : this._actionMap.strafeRight.speed * dt;
             sign = -this._signRHS * this._isAvFacingCamera();
             disp = this._avatar.calcMovePOV(sign * horizDist, 0, 0);
-          }
-          break;
-        case (this._act._walk):
-          horizDist = this._act._speedMod ? this._actionMap.run.speed * dt : this._actionMap.walk.speed * dt;
-          disp = this._avatar.calcMovePOV(0, 0, this._ffSign * horizDist);
-          break;
-        case (this._act._walkback):
-          horizDist = this._act._speedMod ? this._actionMap.walkBackFast.speed * dt : this._actionMap.walkBack.speed * dt;
-          // Move forward in local space since character is rotated 180° to face camera
-          disp = this._avatar.calcMovePOV(0, 0, this._ffSign * horizDist);
-          break;
-        default:
-          disp = new Vector3(0, 0, 0);
+            break;
+          case (this._act._walk):
+            horizDist = this._act._speedMod ? this._actionMap.run.speed * dt : this._actionMap.walk.speed * dt;
+            disp = this._avatar.calcMovePOV(0, 0, this._ffSign * horizDist);
+            break;
+          case (this._act._walkback):
+            horizDist = this._act._speedMod ? this._actionMap.walkBackFast.speed * dt : this._actionMap.walkBack.speed * dt;
+            disp = this._avatar.calcMovePOV(0, 0, this._ffSign * horizDist);
+            break;
+          default:
+            disp = new Vector3(0, 0, 0);
+        }
       }
 
       jumpDist = this._calcJumpDist(this._actionMap.runJump.speed, dt);
