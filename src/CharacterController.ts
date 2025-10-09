@@ -727,7 +727,41 @@ export class CharacterController {
     let forwardDist: number = 0;
     let jumpDist: number = 0;
     let disp: Vector3;
-    if (this._mode != 1 && !this._noRot) this._avatar.rotation.y = this._av2cam - this._camera.alpha;
+
+    // Update avatar rotation BEFORE movement calculation so calcMovePOV uses correct facing
+    if (this._mode != 1) {
+      if (this._noRot) {
+        switch (true) {
+          case (this._act._walk && this._act._turnRight):
+            this._avatar.rotation.y = this._av2cam - this._camera.alpha + Math.PI / 4;
+            break;
+          case (this._act._walk && this._act._turnLeft):
+            this._avatar.rotation.y = this._av2cam - this._camera.alpha - Math.PI / 4;
+            break;
+          case (this._act._walkback && this._act._turnRight):
+            this._avatar.rotation.y = this._av2cam - this._camera.alpha + 3 * Math.PI / 4;
+            break;
+          case (this._act._walkback && this._act._turnLeft):
+            this._avatar.rotation.y = this._av2cam - this._camera.alpha - 3 * Math.PI / 4;
+            break;
+          case (this._act._walk):
+            this._avatar.rotation.y = this._av2cam - this._camera.alpha;
+            break;
+          case (this._act._walkback):
+            this._avatar.rotation.y = this._av2cam - this._camera.alpha + Math.PI;
+            break;
+          // For strafe-only (no forward/back), face the strafe direction
+          case (this._act._turnRight):
+            this._avatar.rotation.y = this._av2cam - this._camera.alpha + Math.PI / 2;
+            break;
+          case (this._act._turnLeft):
+            this._avatar.rotation.y = this._av2cam - this._camera.alpha - Math.PI / 2;
+            break;
+        }
+      } else {
+        this._avatar.rotation.y = this._av2cam - this._camera.alpha;
+      }
+    }
 
     // Check for real-time movement input during jump (air control)
     const isMoving = this.anyMovement();
@@ -738,12 +772,12 @@ export class CharacterController {
       let sign: number;
 
       switch (true) {
-        case (this._act._stepLeft):
+        case (this._act._stepLeft || this._act._turnLeft):
           sign = this._signRHS * this._isAvFacingCamera();
           horizDist = this._act._speedMod ? this._actionMap.strafeLeftFast.speed * dt : this._actionMap.strafeLeft.speed * dt;
           disp = this._avatar.calcMovePOV(sign * horizDist, 0, 0);
           break;
-        case (this._act._stepRight):
+        case (this._act._stepRight || this._act._turnRight):
           sign = -this._signRHS * this._isAvFacingCamera();
           horizDist = this._act._speedMod ? this._actionMap.strafeRightFast.speed * dt : this._actionMap.strafeRight.speed * dt;
           disp = this._avatar.calcMovePOV(sign * horizDist, 0, 0);
@@ -754,7 +788,8 @@ export class CharacterController {
           break;
         case (this._act._walkback):
           horizDist = this._act._speedMod ? this._actionMap.walkBackFast.speed * dt : this._actionMap.walkBack.speed * dt;
-          disp = this._avatar.calcMovePOV(0, 0, -this._ffSign * horizDist);
+          // Move forward in local space since character is rotated 180° to face camera
+          disp = this._avatar.calcMovePOV(0, 0, this._ffSign * horizDist);
           break;
         default:
           disp = new Vector3(0, 0, 0);
@@ -768,6 +803,7 @@ export class CharacterController {
       anim = this._actionMap.idleJump;
       //this.avatar.ellipsoid.y=this._ellipsoid.y/2;
     }
+
     //moveWithCollision only seems to happen if length of displacment is atleast 0.001
     this._avatar.moveWithCollisions(disp);
     if (jumpDist < 0) {

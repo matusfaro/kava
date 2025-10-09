@@ -15,6 +15,8 @@ export interface GameOptions {
   processingRate: React.MutableRefObject<number>;
   renderLegs: React.MutableRefObject<boolean>;
   imageQuality: React.MutableRefObject<number>; // 0-100, JPEG quality percentage
+  armRestAngle: React.MutableRefObject<number>; // Degrees of vertical arm lift (-90 to 90)
+  lowerArmAngle: React.MutableRefObject<number>; // Degrees of forearm forward/back rotation (-90 to 90)
 }
 
 function App() {
@@ -33,6 +35,8 @@ function App() {
   const processingRateRef = useRef<number>(10);
   const renderLegsRef = useRef<boolean>(false);
   const imageQualityRef = useRef<number>(10); // 1-100, JPEG quality percentage (10% default for fast transfers)
+  const armRestAngleRef = useRef<number>(-50); // Degrees of vertical arm lift (0=down, 90=out to sides)
+  const lowerArmAngleRef = useRef<number>(0); // Degrees of forearm forward/back rotation (0=straight)
   const [options] = useState<GameOptions>({
     skeletonRotations: skeletonRotationsRef,
     skeletonScaling: skeletonScalingRef,
@@ -44,6 +48,8 @@ function App() {
     processingRate: processingRateRef,
     renderLegs: renderLegsRef,
     imageQuality: imageQualityRef,
+    armRestAngle: armRestAngleRef,
+    lowerArmAngle: lowerArmAngleRef,
   });
   return (
     <>
@@ -126,6 +132,40 @@ function App() {
                 }}
               />
               <span style={{ fontSize: '12px', width: '35px' }}>{imageQualityRef.current}%</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <label htmlFor="armRestAngle" style={{ fontSize: '14px' }}>Arm Lift:</label>
+              <input
+                id="armRestAngle"
+                type="range"
+                min="-90"
+                max="90"
+                step="5"
+                defaultValue={-50}
+                style={{ width: '120px' }}
+                onChange={e => {
+                  armRestAngleRef.current = parseInt(e.target.value);
+                  forceUpdate();
+                }}
+              />
+              <span style={{ fontSize: '12px', width: '40px' }}>{armRestAngleRef.current}°</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <label htmlFor="lowerArmAngle" style={{ fontSize: '14px' }}>Forearm:</label>
+              <input
+                id="lowerArmAngle"
+                type="range"
+                min="-90"
+                max="90"
+                step="5"
+                defaultValue={0}
+                style={{ width: '120px' }}
+                onChange={e => {
+                  lowerArmAngleRef.current = parseInt(e.target.value);
+                  forceUpdate();
+                }}
+              />
+              <span style={{ fontSize: '12px', width: '40px' }}>{lowerArmAngleRef.current}°</span>
             </div>
           </>
         )}

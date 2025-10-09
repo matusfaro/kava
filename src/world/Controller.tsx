@@ -52,6 +52,7 @@ export const Controller = (props: {
         // https://github.com/ssatguru/BabylonJS-CharacterController
         const controller = new CharacterController(props.player, props.camera, scene);
 
+        controller.setMode(0);
         controller.setTurningOff(true);
 
         const speed = 10;  // Increased from 4
