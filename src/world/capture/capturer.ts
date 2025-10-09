@@ -544,30 +544,24 @@ getAllBoneNames(createBoneBack(true)); // Collect all names including legs
 // Helper to convert Quaternion to plain object
 const toQuatObj = (q: Quaternion) => ({x: q.x, y: q.y, z: q.z, w: q.w});
 
-// Function to generate neutral poses with configurable arm angles
-const getNeutralPoses = (armRestAngleDegrees: number, lowerArmAngleDegrees: number): { [boneName: string]: { x: number, y: number, z: number, w: number } } => {
-    const armAngleRadians = armRestAngleDegrees * Math.PI / 180;
-    const lowerArmAngleRadians = lowerArmAngleDegrees * Math.PI / 180;
-
-    return {
-        'UpperLeg.L': {x: 0, y: 0, z: 0, w: 1},  // Straight down
-        'UpperLeg.R': {x: 0, y: 0, z: 0, w: 1},
-        'LowerLeg.L': {x: 0, y: 0, z: 0, w: 1},
-        'LowerLeg.R': {x: 0, y: 0, z: 0, w: 1},
-        'Foot.L': {x: 0, y: 0, z: 0, w: 1},
-        'Foot.R': {x: 0, y: 0, z: 0, w: 1},
-        'Toes.L': {x: 0, y: 0, z: 0, w: 1},
-        'Toes.R': {x: 0, y: 0, z: 0, w: 1},
-        // UpperArm: Vertical lift angle (X-axis rotation)
-        // Rotation around X-axis (right): positive = lift arms up, negative = pull arms down
-        // 0° = straight down at sides, 90° = arms straight out to sides, -90° = arms crossed below
-        'UpperArm.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), armAngleRadians)),
-        'UpperArm.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), armAngleRadians)),
-        // LowerArm: Forward/backward rotation (Z-axis rotation)
-        // Rotation around Z-axis (forward): positive = rotate forearm forward, negative = rotate backward
-        // 0° = straight/natural continuation of upper arm
-        'LowerArm.L': toQuatObj(Quaternion.RotationAxis(Vector3.Forward(), lowerArmAngleRadians)),
-        'LowerArm.R': toQuatObj(Quaternion.RotationAxis(Vector3.Forward(), -lowerArmAngleRadians)),
+// Mutable neutral poses object with default values
+export const neutralPoses: { [boneName: string]: { x: number, y: number, z: number, w: number } } = {
+    'UpperLeg.L': {x: 0, y: 0, z: 0, w: 1},  // Straight down
+    'UpperLeg.R': {x: 0, y: 0, z: 0, w: 1},
+    'LowerLeg.L': {x: 0, y: 0, z: 0, w: 1},
+    'LowerLeg.R': {x: 0, y: 0, z: 0, w: 1},
+    'Foot.L': {x: 0, y: 0, z: 0, w: 1},
+    'Foot.R': {x: 0, y: 0, z: 0, w: 1},
+    'Toes.L': {x: 0, y: 0, z: 0, w: 1},
+    'Toes.R': {x: 0, y: 0, z: 0, w: 1},
+    // UpperArm: Vertical lift angle (X-axis rotation)
+    // Default: -50° (arms pulled down/back at rest)
+    'UpperArm.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -50 * Math.PI / 180)),
+    'UpperArm.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -50 * Math.PI / 180)),
+    // LowerArm: Forward/backward rotation (Z-axis rotation)
+    // Default: 0° (straight/natural continuation of upper arm)
+    'LowerArm.L': toQuatObj(Quaternion.RotationAxis(Vector3.Forward(), 0)),
+    'LowerArm.R': toQuatObj(Quaternion.RotationAxis(Vector3.Forward(), 0)),
     // Hands rotated inward when at rest (fingers pointing down, palm facing body)
     // 90° rotation around X-axis
     'Hand.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 2)),
@@ -606,15 +600,24 @@ const getNeutralPoses = (armRestAngleDegrees: number, lowerArmAngleDegrees: numb
     'FingerRing02.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 6)), // ~30°
     'FingerRing02.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 6)),
 
-        // Pinky (slightly more curled)
-        'FingerLittle.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 5)), // ~36°
-        'FingerLittle.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 5)),
-        'FingerLittle01.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 4.5)), // ~40°
-        'FingerLittle01.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 4.5)),
-        'FingerLittle02.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 5)), // ~36°
-        'FingerLittle02.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 5)),
-    };
+    // Pinky (slightly more curled)
+    'FingerLittle.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 5)), // ~36°
+    'FingerLittle.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 5)),
+    'FingerLittle01.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 4.5)), // ~40°
+    'FingerLittle01.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 4.5)),
+    'FingerLittle02.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 5)), // ~36°
+    'FingerLittle02.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 5)),
 };
+
+// Function to update neutral pose for a specific bone
+export function updateNeutralPose(boneName: string, angleX: number, angleY: number, angleZ: number) {
+    // Create rotation from Euler angles (applied in order: X -> Y -> Z)
+    const rotX = Quaternion.RotationAxis(Vector3.Right(), angleX * Math.PI / 180);
+    const rotY = Quaternion.RotationAxis(Vector3.Up(), angleY * Math.PI / 180);
+    const rotZ = Quaternion.RotationAxis(Vector3.Forward(), angleZ * Math.PI / 180);
+    const combined = rotX.multiply(rotY).multiply(rotZ);
+    neutralPoses[boneName] = toQuatObj(combined);
+}
 
 interface BoneState {
     lastUpdateTime: number;
@@ -629,7 +632,19 @@ export class Capturer {
     private neutralReturnSpeed = 0.05; // 5% interpolation per frame toward neutral
 
     constructor(options: GameOptions) {
-        this.options = options
+        this.options = options;
+
+        // Initialize all bone states with neutral poses
+        const currentTime = Date.now();
+        allBoneNames.forEach(boneName => {
+            const neutralPose = neutralPoses[boneName];
+            if (neutralPose) {
+                this.boneStates[boneName] = {
+                    lastUpdateTime: currentTime,
+                    currentRotation: new Quaternion(neutralPose.x, neutralPose.y, neutralPose.z, neutralPose.w),
+                };
+            }
+        });
     }
 
     capture(r: Results, updates: SkeletonUpdate, options: GameOptions): boolean {
@@ -758,9 +773,6 @@ export class Capturer {
             });
         } else {
             // Bone not detected - interpolate toward neutral pose if applicable
-            const armAngle = options.armRestAngle.current;
-            const lowerArmAngle = options.lowerArmAngle.current;
-            const neutralPoses = getNeutralPoses(armAngle, lowerArmAngle);
             bone.boneNames.forEach(boneName => {
                 const neutralPose = neutralPoses[boneName];
                 if (neutralPose) {
@@ -769,14 +781,6 @@ export class Capturer {
                     // If bone was recently tracked, interpolate toward neutral
                     if (boneState && (currentTime - boneState.lastUpdateTime < 5000)) {
                         const neutralQuat = new Quaternion(neutralPose.x, neutralPose.y, neutralPose.z, neutralPose.w);
-
-                        // Debug log for arm bones
-                        if ((boneName === 'UpperArm.L' || boneName === 'UpperArm.R' || boneName === 'LowerArm.L' || boneName === 'LowerArm.R') && Math.random() < 0.05) {
-                            console.log(`[${boneName}] Interpolating to neutral with upperArm=${armAngle}°, lowerArm=${lowerArmAngle}°`, {
-                                current: boneState.currentRotation,
-                                target: neutralQuat
-                            });
-                        }
 
                         // Slerp toward neutral (exponential decay)
                         const interpolated = Quaternion.Slerp(

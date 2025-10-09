@@ -3,7 +3,7 @@ import { FilesetResolver, HolisticLandmarker, HolisticLandmarkerResult } from '@
 import { useEffect, useRef } from 'react';
 import { GameOptions } from '../../App';
 import Subscription from '../../util/subscriptionUtil';
-import { Capturer, VisibilityThreshold } from './capturer';
+import { Capturer, VisibilityThreshold, updateNeutralPose } from './capturer';
 import { captureFace } from './face';
 import { captureTorso } from './torso';
 

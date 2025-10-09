@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { isProd } from './util/detectEnv';
 import { useForceUpdate } from './util/reactUtil';
-import { allBoneNames } from './world/capture/capturer';
+import { allBoneNames, updateNeutralPose } from './world/capture/capturer';
 import Game from './world/Game';
 
 export interface GameOptions {
@@ -15,8 +15,10 @@ export interface GameOptions {
   processingRate: React.MutableRefObject<number>;
   renderLegs: React.MutableRefObject<boolean>;
   imageQuality: React.MutableRefObject<number>; // 0-100, JPEG quality percentage
-  armRestAngle: React.MutableRefObject<number>; // Degrees of vertical arm lift (-90 to 90)
-  lowerArmAngle: React.MutableRefObject<number>; // Degrees of forearm forward/back rotation (-90 to 90)
+  neutralBoneName: React.MutableRefObject<string | undefined>; // Bone to adjust neutral pose for
+  neutralAngleX: React.MutableRefObject<number>; // X-axis rotation in degrees
+  neutralAngleY: React.MutableRefObject<number>; // Y-axis rotation in degrees
+  neutralAngleZ: React.MutableRefObject<number>; // Z-axis rotation in degrees
 }
 
 function App() {
@@ -35,8 +37,10 @@ function App() {
   const processingRateRef = useRef<number>(10);
   const renderLegsRef = useRef<boolean>(false);
   const imageQualityRef = useRef<number>(10); // 1-100, JPEG quality percentage (10% default for fast transfers)
-  const armRestAngleRef = useRef<number>(-50); // Degrees of vertical arm lift (0=down, 90=out to sides)
-  const lowerArmAngleRef = useRef<number>(0); // Degrees of forearm forward/back rotation (0=straight)
+  const neutralBoneNameRef = useRef<string | undefined>(undefined); // Bone to adjust neutral pose for
+  const neutralAngleXRef = useRef<number>(0); // X-axis rotation in degrees
+  const neutralAngleYRef = useRef<number>(0); // Y-axis rotation in degrees
+  const neutralAngleZRef = useRef<number>(0); // Z-axis rotation in degrees
   const [options] = useState<GameOptions>({
     skeletonRotations: skeletonRotationsRef,
     skeletonScaling: skeletonScalingRef,
@@ -48,8 +52,10 @@ function App() {
     processingRate: processingRateRef,
     renderLegs: renderLegsRef,
     imageQuality: imageQualityRef,
-    armRestAngle: armRestAngleRef,
-    lowerArmAngle: lowerArmAngleRef,
+    neutralBoneName: neutralBoneNameRef,
+    neutralAngleX: neutralAngleXRef,
+    neutralAngleY: neutralAngleYRef,
+    neutralAngleZ: neutralAngleZRef,
   });
   return (
     <>
@@ -61,6 +67,9 @@ function App() {
         display: 'flex',
         flexDirection: 'column',
         rowGap: 10,
+        background: 'rgba(255, 255, 255, 0.5)',
+        padding: '10px',
+        borderRadius: '5px',
       }}>
         {debug && (
           <>
@@ -116,57 +125,128 @@ function App() {
                 }}
               />
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <label htmlFor="imageQuality" style={{ fontSize: '14px' }}>Quality:</label>
-              <input
-                id="imageQuality"
-                type="range"
-                min="1"
-                max="100"
-                step="1"
-                defaultValue={10}
-                style={{ width: '100px' }}
-                onChange={e => {
-                  imageQualityRef.current = parseInt(e.target.value);
-                  forceUpdate();
-                }}
-              />
-              <span style={{ fontSize: '12px', width: '35px' }}>{imageQualityRef.current}%</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <input
+                  id="imageQuality"
+                  type="range"
+                  min="1"
+                  max="100"
+                  step="1"
+                  defaultValue={10}
+                  style={{ width: '100px' }}
+                  onChange={e => {
+                    imageQualityRef.current = parseInt(e.target.value);
+                    forceUpdate();
+                  }}
+                />
+                <span style={{ fontSize: '12px', width: '35px' }}>{imageQualityRef.current}%</span>
+              </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <label htmlFor="armRestAngle" style={{ fontSize: '14px' }}>Arm Lift:</label>
-              <input
-                id="armRestAngle"
-                type="range"
-                min="-90"
-                max="90"
-                step="5"
-                defaultValue={-50}
-                style={{ width: '120px' }}
-                onChange={e => {
-                  armRestAngleRef.current = parseInt(e.target.value);
-                  forceUpdate();
-                }}
-              />
-              <span style={{ fontSize: '12px', width: '40px' }}>{armRestAngleRef.current}°</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <label htmlFor="lowerArmAngle" style={{ fontSize: '14px' }}>Forearm:</label>
-              <input
-                id="lowerArmAngle"
-                type="range"
-                min="-90"
-                max="90"
-                step="5"
-                defaultValue={0}
-                style={{ width: '120px' }}
-                onChange={e => {
-                  lowerArmAngleRef.current = parseInt(e.target.value);
-                  forceUpdate();
-                }}
-              />
-              <span style={{ fontSize: '12px', width: '40px' }}>{lowerArmAngleRef.current}°</span>
-            </div>
+            <div style={{ fontSize: '14px', marginTop: 10, fontWeight: 'bold' }}>Neutral Pose Editor:</div>
+            <select
+              value={neutralBoneNameRef.current || 'None'}
+              onChange={e => {
+                const boneName = e.target.value;
+                neutralBoneNameRef.current = boneName === 'None' ? undefined : boneName;
+                // Reset angles when selecting a new bone
+                neutralAngleXRef.current = 0;
+                neutralAngleYRef.current = 0;
+                neutralAngleZRef.current = 0;
+                forceUpdate();
+              }}
+            >
+              <option value='None'>Select Bone</option>
+              {allBoneNames.map(boneName => (
+                <option key={boneName} value={boneName}>{boneName}</option>
+              ))}
+            </select>
+            {neutralBoneNameRef.current && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <label htmlFor="neutralAngleX" style={{ fontSize: '14px' }}>X-axis:</label>
+                  <input
+                    id="neutralAngleX"
+                    type="range"
+                    min="-180"
+                    max="180"
+                    step="5"
+                    value={neutralAngleXRef.current}
+                    style={{ width: '120px' }}
+                    onChange={e => {
+                      neutralAngleXRef.current = parseInt(e.target.value);
+                      updateNeutralPose(
+                        neutralBoneNameRef.current!,
+                        neutralAngleXRef.current,
+                        neutralAngleYRef.current,
+                        neutralAngleZRef.current
+                      );
+                      forceUpdate();
+                    }}
+                  />
+                  <span style={{ fontSize: '12px', width: '45px' }}>{neutralAngleXRef.current}°</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <label htmlFor="neutralAngleY" style={{ fontSize: '14px' }}>Y-axis:</label>
+                  <input
+                    id="neutralAngleY"
+                    type="range"
+                    min="-180"
+                    max="180"
+                    step="5"
+                    value={neutralAngleYRef.current}
+                    style={{ width: '120px' }}
+                    onChange={e => {
+                      neutralAngleYRef.current = parseInt(e.target.value);
+                      updateNeutralPose(
+                        neutralBoneNameRef.current!,
+                        neutralAngleXRef.current,
+                        neutralAngleYRef.current,
+                        neutralAngleZRef.current
+                      );
+                      forceUpdate();
+                    }}
+                  />
+                  <span style={{ fontSize: '12px', width: '45px' }}>{neutralAngleYRef.current}°</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <label htmlFor="neutralAngleZ" style={{ fontSize: '14px' }}>Z-axis:</label>
+                  <input
+                    id="neutralAngleZ"
+                    type="range"
+                    min="-180"
+                    max="180"
+                    step="5"
+                    value={neutralAngleZRef.current}
+                    style={{ width: '120px' }}
+                    onChange={e => {
+                      neutralAngleZRef.current = parseInt(e.target.value);
+                      updateNeutralPose(
+                        neutralBoneNameRef.current!,
+                        neutralAngleXRef.current,
+                        neutralAngleYRef.current,
+                        neutralAngleZRef.current
+                      );
+                      forceUpdate();
+                    }}
+                  />
+                  <span style={{ fontSize: '12px', width: '45px' }}>{neutralAngleZRef.current}°</span>
+                </div>
+                <button
+                  onClick={() => {
+                    const boneName = neutralBoneNameRef.current!;
+                    const x = neutralAngleXRef.current;
+                    const y = neutralAngleYRef.current;
+                    const z = neutralAngleZRef.current;
+                    console.log(`Apply this to code:\n'${boneName}': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), ${x} * Math.PI / 180).multiply(Quaternion.RotationAxis(Vector3.Up(), ${y} * Math.PI / 180)).multiply(Quaternion.RotationAxis(Vector3.Forward(), ${z} * Math.PI / 180))),`);
+                  }}
+                  style={{ fontSize: '12px', padding: '5px 10px' }}
+                >
+                  Log Code
+                </button>
+              </>
+            )}
           </>
         )}
       </div>
