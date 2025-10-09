@@ -105,6 +105,12 @@ Server (server.ts)
 - UpperArm.L/R: Shoulder → Elbow
 - LowerArm.L/R: Elbow → Wrist
 - Hand.L/R: Wrist → Hand center (index & pinky midpoint)
+- **Fingers (All 5 per hand, 3 bones each):**
+  - FingerThumb/01/02: Thumb joints (MCP → IP → TIP)
+  - FingerIndex/01/02: Index finger joints (MCP → PIP → DIP → TIP)
+  - FingerMiddle/01/02: Middle finger joints
+  - FingerRing/01/02: Ring finger joints
+  - FingerLittle/01/02: Pinky finger joints
 
 **Lower Body (Optional - Feature Flag):**
 - UpperLeg.L/R: Hip → Knee
@@ -114,10 +120,19 @@ Server (server.ts)
 
 **MediaPipe Landmark Indices:**
 ```
-Upper body: 11,12 (shoulders), 13,14 (elbows), 15,16 (wrists)
-Hands: 17,18 (pinky), 19,20 (index finger)
-Lower body: 23,24 (hips), 25,26 (knees), 27,28 (ankles)
-Feet: 29,30 (heels), 31,32 (foot index/toes)
+Pose landmarks:
+- Upper body: 11,12 (shoulders), 13,14 (elbows), 15,16 (wrists)
+- Hands (pose): 17,18 (pinky), 19,20 (index finger)
+- Lower body: 23,24 (hips), 25,26 (knees), 27,28 (ankles)
+- Feet: 29,30 (heels), 31,32 (foot index/toes)
+
+Hand landmarks (21 per hand):
+- 0: WRIST
+- 1-4: THUMB (CMC, MCP, IP, TIP)
+- 5-8: INDEX_FINGER (MCP, PIP, DIP, TIP)
+- 9-12: MIDDLE_FINGER (MCP, PIP, DIP, TIP)
+- 13-16: RING_FINGER (MCP, PIP, DIP, TIP)
+- 17-20: PINKY (MCP, PIP, DIP, TIP)
 ```
 
 ## Critical Implementation Details
@@ -146,10 +161,12 @@ The `targetBackward` vector for hands must be negated to correct palm orientatio
 
 ### Performance Optimizations
 
-**Face texture rate limiting:**
-- Face mesh geometry updates every frame (smooth animation)
-- Face texture (expensive `toDataURL`) updates at configurable Hz (default 30)
-- Configured via `faceRefreshRate` in `GameOptions`
+**Processing rate limiting:**
+- MediaPipe body recognition throttled to configurable Hz (default 30)
+- Face mesh geometry updates at the same rate
+- Face texture (expensive `toDataURL`) updates at the same rate
+- Configured via `processingRate` in `GameOptions`
+- Note: Babylon.js render loop runs at native browser refresh rate for smooth rendering
 
 **Canvas sizing:**
 - Processing canvas dynamically sized to actual video dimensions

@@ -12,8 +12,7 @@ export interface GameOptions {
   renderBones: React.MutableRefObject<boolean>;
   skeletonRotations: React.MutableRefObject<boolean>;
   skeletonScaling: React.MutableRefObject<boolean>;
-  faceRefreshRate: React.MutableRefObject<number>;
-  zAxisMode: React.MutableRefObject<'normal' | 'negated' | 'original'>;
+  processingRate: React.MutableRefObject<number>;
   renderLegs: React.MutableRefObject<boolean>;
 }
 
@@ -30,8 +29,7 @@ function App() {
   const renderBonesRef = useRef<boolean>(debug ? true : true);
   const skeletonRotationsRef = useRef<boolean>(debug ? true : true);
   const skeletonScalingRef = useRef<boolean>(debug ? false : true);
-  const faceRefreshRateRef = useRef<number>(30);
-  const zAxisModeRef = useRef<'normal' | 'negated' | 'original'>('normal');
+  const processingRateRef = useRef<number>(10);
   const renderLegsRef = useRef<boolean>(false);
   const [options] = useState<GameOptions>({
     skeletonRotations: skeletonRotationsRef,
@@ -41,8 +39,7 @@ function App() {
     preview: previewRef,
     renderFace: renderFaceRef,
     renderBones: renderBonesRef,
-    faceRefreshRate: faceRefreshRateRef,
-    zAxisMode: zAxisModeRef,
+    processingRate: processingRateRef,
     renderLegs: renderLegsRef,
   });
   return (
@@ -96,35 +93,19 @@ function App() {
               ))}
             </select>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <label htmlFor="faceRefreshRate" style={{ fontSize: '14px' }}>Face Hz:</label>
+              <label htmlFor="processingRate" style={{ fontSize: '14px' }}>Hz:</label>
               <input
-                id="faceRefreshRate"
+                id="processingRate"
                 type="number"
                 min="1"
                 max="60"
-                defaultValue={3}
+                defaultValue={10}
                 style={{ width: '60px' }}
                 onChange={e => {
-                  const rate = parseInt(e.target.value) || 30;
-                  faceRefreshRateRef.current = Math.max(1, Math.min(60, rate));
+                  const rate = parseInt(e.target.value) || 10;
+                  processingRateRef.current = Math.max(1, Math.min(60, rate));
                 }}
               />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <label htmlFor="zAxisMode" style={{ fontSize: '14px' }}>Z-Axis:</label>
-              <select
-                id="zAxisMode"
-                defaultValue="normal"
-                onChange={e => {
-                  zAxisModeRef.current = e.target.value as 'normal' | 'negated' | 'original';
-                  forceUpdate();
-                }}
-                style={{ fontSize: '12px' }}
-              >
-                <option value="normal">Normal (z)</option>
-                <option value="negated">Negated (-z)</option>
-                <option value="original">Original (1-z)</option>
-              </select>
             </div>
           </>
         )}

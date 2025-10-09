@@ -23,7 +23,7 @@ export const captureFace = (results: Results, body: Body, options: GameOptions):
 
   // Rate limit face texture updates to reduce CPU load (configurable Hz)
   const now = Date.now();
-  const faceTextureUpdateInterval = 1000 / options.faceRefreshRate.current;
+  const faceTextureUpdateInterval = 1000 / options.processingRate.current;
   const shouldUpdateTexture = (now - lastFaceTextureUpdate) >= faceTextureUpdateInterval;
 
   // Handle both HTMLVideoElement (new API) and HTMLCanvasElement (legacy API)

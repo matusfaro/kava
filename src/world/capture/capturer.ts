@@ -39,6 +39,8 @@ const KalmanProps = {
 interface ResultsWrapped {
   getPoseLandmark(index: number): Vector3 | undefined;
   getFaceLandmark(index: number): Vector3 | undefined;
+  getLeftHandLandmark(index: number): Vector3 | undefined;
+  getRightHandLandmark(index: number): Vector3 | undefined;
   raw: Results;
 }
 type BoneDefinition = [
@@ -153,6 +155,96 @@ const boneUpperLegs: BoneMapping[] = [true, false].map(isLeft => ({
   children: [boneLowerLegs[isLeft ? 0 : 1]],
 }));
 
+// MediaPipe hand landmark indices:
+// 0: WRIST
+// 1-4: THUMB_CMC, THUMB_MCP, THUMB_IP, THUMB_TIP
+// 5-8: INDEX_FINGER_MCP, PIP, DIP, TIP
+// 9-12: MIDDLE_FINGER_MCP, PIP, DIP, TIP
+// 13-16: RING_FINGER_MCP, PIP, DIP, TIP
+// 17-20: PINKY_MCP, PIP, DIP, TIP
+
+// Helper to create finger bone mapping (3 bones per finger)
+const createFingerBones = (
+  isLeft: boolean,
+  fingerName: string,
+  mcp: number, // Metacarpophalangeal joint (knuckle)
+  pip: number, // Proximal interphalangeal joint
+  dip: number, // Distal interphalangeal joint
+  tip: number  // Fingertip
+): BoneMapping[] => {
+  const prefix = isLeft ? '.L' : '.R';
+
+  // Bone 2: DIP to TIP (fingertip segment)
+  const bone2: BoneMapping = {
+    boneNames: [`${fingerName}02${prefix}`],
+    getDef: (r, defParent) => {
+      const getHandLandmark = isLeft ? r.getLeftHandLandmark.bind(r) : r.getRightHandLandmark.bind(r);
+      const jointDip = getHandLandmark(dip);
+      const jointTip = getHandLandmark(tip);
+      if (!jointDip || !jointTip) return undefined;
+
+      const boneUp = defParent?.[2].normalizeToNew() || Vector3.Up();
+      const boneBackward = defParent?.[1].normalizeToNew() || Vector3.Forward();
+      const target = jointTip.subtract(jointDip);
+
+      return [boneUp, boneBackward, target, undefined];
+    },
+    children: [],
+  };
+
+  // Bone 1: PIP to DIP (middle segment)
+  const bone1: BoneMapping = {
+    boneNames: [`${fingerName}01${prefix}`],
+    getDef: (r, defParent) => {
+      const getHandLandmark = isLeft ? r.getLeftHandLandmark.bind(r) : r.getRightHandLandmark.bind(r);
+      const jointPip = getHandLandmark(pip);
+      const jointDip = getHandLandmark(dip);
+      if (!jointPip || !jointDip) return undefined;
+
+      const boneUp = defParent?.[2].normalizeToNew() || Vector3.Up();
+      const boneBackward = defParent?.[1].normalizeToNew() || Vector3.Forward();
+      const target = jointDip.subtract(jointPip);
+
+      return [boneUp, boneBackward, target, undefined];
+    },
+    children: [bone2],
+  };
+
+  // Bone 0: MCP to PIP (base segment from knuckle)
+  const bone0: BoneMapping = {
+    boneNames: [`${fingerName}${prefix}`],
+    getDef: (r, defParent) => {
+      const getHandLandmark = isLeft ? r.getLeftHandLandmark.bind(r) : r.getRightHandLandmark.bind(r);
+      const wrist = getHandLandmark(0); // Use wrist as anchor
+      const jointMcp = getHandLandmark(mcp);
+      const jointPip = getHandLandmark(pip);
+      if (!wrist || !jointMcp || !jointPip) return undefined;
+
+      // Bone up: direction from wrist toward knuckle
+      const boneUp = jointMcp.subtract(wrist).normalize();
+
+      // Bone backward: inherited from hand/parent
+      const boneBackward = defParent?.[3] || defParent?.[1].normalizeToNew() || Vector3.Forward();
+
+      // Target: from knuckle to first joint
+      const target = jointPip.subtract(jointMcp);
+
+      return [boneUp, boneBackward, target, undefined];
+    },
+    children: [bone1],
+  };
+
+  return [bone0];
+};
+
+// Create all finger bone mappings
+// Note: Thumb has different joint structure - uses MCP(2), IP(3), TIP(4) instead of MCP/PIP/DIP/TIP
+const boneThumb = (isLeft: boolean) => createFingerBones(isLeft, 'FingerThumb', 2, 3, 3, 4); // Thumb: MCP, IP, IP, TIP
+const boneIndex = (isLeft: boolean) => createFingerBones(isLeft, 'FingerIndex', 5, 6, 7, 8);
+const boneMiddle = (isLeft: boolean) => createFingerBones(isLeft, 'FingerMiddle', 9, 10, 11, 12);
+const boneRing = (isLeft: boolean) => createFingerBones(isLeft, 'FingerRing', 13, 14, 15, 16);
+const bonePinky = (isLeft: boolean) => createFingerBones(isLeft, 'FingerLittle', 17, 18, 19, 20);
+
 const boneHands: BoneMapping[] = [true, false].map(isLeft => ({
   boneNames: [isLeft ? 'Hand.L' : 'Hand.R'],
   getDef: (r, defParent) => {
@@ -183,7 +275,14 @@ const boneHands: BoneMapping[] = [true, false].map(isLeft => ({
 
     return [boneUp, boneBackward, target, targetBackward];
   },
-  children: [],
+  // Attach all finger bones as children
+  children: [
+    ...boneThumb(isLeft),
+    ...boneIndex(isLeft),
+    ...boneMiddle(isLeft),
+    ...boneRing(isLeft),
+    ...bonePinky(isLeft),
+  ],
 }));
 const boneLowerArms: BoneMapping[] = [true, false].map(isLeft => ({
   boneNames: [isLeft ? 'LowerArm.L' : 'LowerArm.R'],
@@ -347,6 +446,9 @@ const getAllBoneNames = (bone: BoneMapping) => {
 }
 getAllBoneNames(createBoneBack(true)); // Collect all names including legs
 
+// Helper to convert Quaternion to plain object
+const toQuatObj = (q: Quaternion) => ({ x: q.x, y: q.y, z: q.z, w: q.w });
+
 // Neutral pose quaternions (identity = no rotation)
 const NEUTRAL_POSES: { [boneName: string]: { x: number, y: number, z: number, w: number } } = {
   'UpperLeg.L': { x: 0, y: 0, z: 0, w: 1 },  // Straight down
@@ -361,8 +463,51 @@ const NEUTRAL_POSES: { [boneName: string]: { x: number, y: number, z: number, w:
   'UpperArm.R': { x: 0, y: 0, z: 0, w: 1 },
   'LowerArm.L': { x: 0, y: 0, z: 0, w: 1 },
   'LowerArm.R': { x: 0, y: 0, z: 0, w: 1 },
-  'Hand.L': { x: 0, y: 0, z: 0, w: 1 },
-  'Hand.R': { x: 0, y: 0, z: 0, w: 1 },
+  // Hands rotated inward when at rest (fingers pointing down, palm facing body)
+  // 90° rotation around X-axis
+  'Hand.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 2)),
+  'Hand.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 2)),
+
+  // Finger neutral poses - slightly curled/relaxed
+  // Thumb (slightly bent)
+  'FingerThumb.L': toQuatObj(Quaternion.RotationAxis(Vector3.Forward(), Math.PI / 8)), // ~22.5°
+  'FingerThumb.R': toQuatObj(Quaternion.RotationAxis(Vector3.Forward(), Math.PI / 8)),
+  'FingerThumb01.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 10)), // ~18°
+  'FingerThumb01.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 10)),
+  'FingerThumb02.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 12)), // ~15°
+  'FingerThumb02.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 12)),
+
+  // Index finger (moderately curled)
+  'FingerIndex.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 6)), // ~30°
+  'FingerIndex.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 6)),
+  'FingerIndex01.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 5)), // ~36°
+  'FingerIndex01.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 5)),
+  'FingerIndex02.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 6)), // ~30°
+  'FingerIndex02.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 6)),
+
+  // Middle finger (moderately curled)
+  'FingerMiddle.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 6)), // ~30°
+  'FingerMiddle.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 6)),
+  'FingerMiddle01.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 5)), // ~36°
+  'FingerMiddle01.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 5)),
+  'FingerMiddle02.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 6)), // ~30°
+  'FingerMiddle02.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 6)),
+
+  // Ring finger (moderately curled)
+  'FingerRing.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 6)), // ~30°
+  'FingerRing.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 6)),
+  'FingerRing01.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 5)), // ~36°
+  'FingerRing01.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 5)),
+  'FingerRing02.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 6)), // ~30°
+  'FingerRing02.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 6)),
+
+  // Pinky (slightly more curled)
+  'FingerLittle.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 5)), // ~36°
+  'FingerLittle.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 5)),
+  'FingerLittle01.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 4.5)), // ~40°
+  'FingerLittle01.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 4.5)),
+  'FingerLittle02.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 5)), // ~36°
+  'FingerLittle02.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 5)),
 };
 
 interface BoneState {
@@ -382,6 +527,8 @@ export class Capturer {
   capture(r: Results, updates: SkeletonUpdate, options: GameOptions): boolean {
     const cachedPoseLandmarks: { [index: number]: Vector3 } = {};
     const cachedFaceLandmarks: { [index: number]: Vector3 } = {};
+    const cachedLeftHandLandmarks: { [index: number]: Vector3 } = {};
+    const cachedRightHandLandmarks: { [index: number]: Vector3 } = {};
 
     // Create root bone dynamically based on renderLegs flag
     const rootBone = createBoneBack(options.renderLegs.current);
@@ -390,6 +537,8 @@ export class Capturer {
       {
         getPoseLandmark: index => this.getPoseLandmark(r, index, cachedPoseLandmarks),
         getFaceLandmark: index => this.getFaceLandmark(r, index, cachedFaceLandmarks),
+        getLeftHandLandmark: index => this.getLeftHandLandmark(r, index, cachedLeftHandLandmarks),
+        getRightHandLandmark: index => this.getRightHandLandmark(r, index, cachedRightHandLandmarks),
         raw: r,
       },
       updates,
@@ -520,6 +669,14 @@ export class Capturer {
     return this.getLandmark(holistic.faceLandmarks, index, 1000, cachedLandmarks)
   }
 
+  getLeftHandLandmark(holistic: Results, index: number, cachedLandmarks: { [index: number]: Vector3 }): Vector3 | undefined {
+    return this.getLandmark(holistic.leftHandLandmarks, index, 2000, cachedLandmarks)
+  }
+
+  getRightHandLandmark(holistic: Results, index: number, cachedLandmarks: { [index: number]: Vector3 }): Vector3 | undefined {
+    return this.getLandmark(holistic.rightHandLandmarks, index, 3000, cachedLandmarks)
+  }
+
   getLandmark(landmarklist: NormalizedLandmarkList | undefined, index: number, globalIndexOffset: number, cachedLandmarks: { [index: number]: Vector3 }): Vector3 | undefined {
     // Check cache
     var landmarkVector = cachedLandmarks[index];
@@ -528,19 +685,9 @@ export class Capturer {
     const landmark = landmarklist?.[index];
     if (!landmark || ((landmark?.visibility || 0) < VisibilityThreshold)) return undefined;
 
-    // Apply Z-axis transformation based on mode
-    let z: number;
-    switch (this.options.zAxisMode.current) {
-      case 'normal':
-        z = -landmark.z; // Negate: MediaPipe (positive=away) → Babylon (positive=forward)
-        break;
-      case 'negated':
-        z = landmark.z; // Don't negate (for testing)
-        break;
-      case 'original':
-        z = -(1 - landmark.z); // Original with negation
-        break;
-    }
+    // Apply Z-axis transformation
+    // Negate: MediaPipe (positive=away) → Babylon (positive=forward)
+    const z = -landmark.z;
 
     landmarkVector = new Vector3(
       landmark.x, // Keep X as-is: front camera video is already mirrored

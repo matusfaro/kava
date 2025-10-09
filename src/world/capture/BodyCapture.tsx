@@ -123,6 +123,34 @@ const previewWebcam = (results: Results, options: GameOptions, webcamCanvasRef?:
     });
   }
 
+  // Visualize left hand landmarks (blue)
+  if (results.leftHandLandmarks && results.leftHandLandmarks.length > 0) {
+    canvasCtx.fillStyle = 'blue';
+    results.leftHandLandmarks.forEach((landmark: any) => {
+      canvasCtx.beginPath();
+      canvasCtx.arc(
+        landmark.x * canvasElement.width,
+        landmark.y * canvasElement.height,
+        2, 0, 2 * Math.PI
+      );
+      canvasCtx.fill();
+    });
+  }
+
+  // Visualize right hand landmarks (green)
+  if (results.rightHandLandmarks && results.rightHandLandmarks.length > 0) {
+    canvasCtx.fillStyle = 'green';
+    results.rightHandLandmarks.forEach((landmark: any) => {
+      canvasCtx.beginPath();
+      canvasCtx.arc(
+        landmark.x * canvasElement.width,
+        landmark.y * canvasElement.height,
+        2, 0, 2 * Math.PI
+      );
+      canvasCtx.fill();
+    });
+  }
+
   canvasCtx.restore();
 }
 
@@ -146,7 +174,6 @@ const BodyCapture = (props: {
 
   useEffect(() => {
     const capturer = new Capturer(props.options);
-    const frameInterval = 1000 / Qps;
 
     // Initialize webcam
     const initializeWebcam = async () => {
@@ -273,6 +300,9 @@ const BodyCapture = (props: {
       startTimeRef.current = performance.now(); // Set start time
       const processFrame = () => {
         const currentTime = Date.now();
+
+        // Calculate frame interval from user-configured processing rate
+        const frameInterval = 1000 / props.options.processingRate.current;
 
         // Skip if still processing or not enough time has passed
         if (isProcessingRef.current || (currentTime - lastFrameTimeRef.current < frameInterval)) {
