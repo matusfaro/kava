@@ -573,10 +573,8 @@ export const neutralPoses: { [boneName: string]: { x: number, y: number, z: numb
     // Default: 0° (straight/natural continuation of upper arm)
     'LowerArm.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -15 * Math.PI / 180).multiply(Quaternion.RotationAxis(Vector3.Up(), 0 * Math.PI / 180)).multiply(Quaternion.RotationAxis(Vector3.Forward(), 0 * Math.PI / 180))),
     'LowerArm.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -15 * Math.PI / 180).multiply(Quaternion.RotationAxis(Vector3.Up(), 0 * Math.PI / 180)).multiply(Quaternion.RotationAxis(Vector3.Forward(), 0 * Math.PI / 180))),
-    // Hands rotated inward when at rest (fingers pointing down, palm facing body)
-    // 90° rotation around X-axis
-    'Hand.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), 0 * Math.PI / 180).multiply(Quaternion.RotationAxis(Vector3.Up(), 180 * Math.PI / 180)).multiply(Quaternion.RotationAxis(Vector3.Forward(), 0 * Math.PI / 180))),
-    'Hand.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), 0 * Math.PI / 180).multiply(Quaternion.RotationAxis(Vector3.Up(), 180 * Math.PI / 180)).multiply(Quaternion.RotationAxis(Vector3.Forward(), 0 * Math.PI / 180))),
+    'Hand.L': {x: 0, y: 0, z: 0, w: 1},
+    'Hand.R': {x: 0, y: 0, z: 0, w: 1},
 
     // Finger neutral poses - slightly curled/relaxed
     // Thumb (straight/extended by default to match MediaPipe rest position)
