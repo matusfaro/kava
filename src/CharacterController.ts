@@ -773,14 +773,24 @@ export class CharacterController {
 
       switch (true) {
         case (this._act._stepLeft || this._act._turnLeft):
-          sign = this._signRHS * this._isAvFacingCamera();
           horizDist = this._act._speedMod ? this._actionMap.strafeLeftFast.speed * dt : this._actionMap.strafeLeft.speed * dt;
-          disp = this._avatar.calcMovePOV(sign * horizDist, 0, 0);
+          // If pure strafe (no forward/back), character is rotated 90° so move forward in local space
+          if (this._act._turnLeft && !this._act._walk && !this._act._walkback) {
+            disp = this._avatar.calcMovePOV(0, 0, this._ffSign * horizDist);
+          } else {
+            sign = this._signRHS * this._isAvFacingCamera();
+            disp = this._avatar.calcMovePOV(sign * horizDist, 0, 0);
+          }
           break;
         case (this._act._stepRight || this._act._turnRight):
-          sign = -this._signRHS * this._isAvFacingCamera();
           horizDist = this._act._speedMod ? this._actionMap.strafeRightFast.speed * dt : this._actionMap.strafeRight.speed * dt;
-          disp = this._avatar.calcMovePOV(sign * horizDist, 0, 0);
+          // If pure strafe (no forward/back), character is rotated 90° so move forward in local space
+          if (this._act._turnRight && !this._act._walk && !this._act._walkback) {
+            disp = this._avatar.calcMovePOV(0, 0, this._ffSign * horizDist);
+          } else {
+            sign = -this._signRHS * this._isAvFacingCamera();
+            disp = this._avatar.calcMovePOV(sign * horizDist, 0, 0);
+          }
           break;
         case (this._act._walk):
           horizDist = this._act._speedMod ? this._actionMap.run.speed * dt : this._actionMap.walk.speed * dt;
