@@ -39,11 +39,12 @@ export const captureFace = (results: Results, body: Body, options: GameOptions):
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.drawImage(results.image, 0, 0);
-        img = canvas.toDataURL('image/jpeg', 0.1);
+        // Use quality from options (0-100 scale converted to 0-1)
+        img = canvas.toDataURL('image/jpeg', options.imageQuality.current / 100);
       }
     } else if ((results.image as any).toDataURL) {
       // Legacy API with canvas
-      img = (results.image as HTMLCanvasElement).toDataURL('image/jpeg', 0.1);
+      img = (results.image as HTMLCanvasElement).toDataURL('image/jpeg', options.imageQuality.current / 100);
     }
   }
 

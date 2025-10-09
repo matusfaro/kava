@@ -390,6 +390,9 @@ const boneUpperArms: BoneMapping[] = [true, false].map(isLeft => ({
     },
     children: [boneLowerArms[isLeft ? 0 : 1]],
 }));
+// Static head tilt configuration (degrees)
+const HEAD_TILT_DEFAULT = 30; // Degrees forward tilt for head
+
 const createBoneHead = (options: GameOptions): BoneMapping => ({
     boneNames: ['Head'],
     getDef: (r, defParent) => {
@@ -415,8 +418,8 @@ const createBoneHead = (options: GameOptions): BoneMapping => ({
         const eyeCenter = Vector3.Center(eyeRight, eyeLeft);
         let target = eyeCenter.subtract(chin);
 
-        // Add forward tilt from slider (same as neck)
-        const headTiltOffset = target.length() * Math.tan((options.headTilt.current - 10) * Math.PI / 180);
+        // Add static forward tilt for natural head position
+        const headTiltOffset = target.length() * Math.tan(HEAD_TILT_DEFAULT * Math.PI / 180);
         target.z += headTiltOffset; // Positive Z = forward tilt
 
         target.normalize();
@@ -429,6 +432,9 @@ const createBoneHead = (options: GameOptions): BoneMapping => ({
     },
     children: [],
 });
+
+// Static neck tilt configuration (degrees)
+const NECK_TILT_DEFAULT = 40; // Degrees forward tilt for neck
 
 const createBoneNeck = (options: GameOptions): BoneMapping => ({
     boneNames: ['Neck'],
@@ -463,8 +469,8 @@ const createBoneNeck = (options: GameOptions): BoneMapping => ({
         // Negate Z for correct forward/backward head movement
         target.z = -target.z;
 
-        // Add forward tilt from slider (controls both neck and head)
-        const forwardTiltOffset = target.length() * Math.tan(options.headTilt.current * Math.PI / 180);
+        // Add static forward tilt for natural neck position
+        const forwardTiltOffset = target.length() * Math.tan(NECK_TILT_DEFAULT * Math.PI / 180);
         target.z += forwardTiltOffset;
 
         return [boneUp, boneBackward, target, undefined];
@@ -530,7 +536,7 @@ const dummyOptions: GameOptions = {
     skeletonScaling: {current: true},
     processingRate: {current: 10},
     renderLegs: {current: false},
-    headTilt: {current: 40},
+    imageQuality: {current: 30},
 };
 getAllBoneNames(createBoneBack(true, dummyOptions)); // Collect all names including legs
 

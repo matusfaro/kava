@@ -19,7 +19,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useScene } from 'react-babylonjs';
 import { GameOptions } from '../App';
 import Subscription from '../util/subscriptionUtil';
-import { Body, Face, FaceCaptureDimensions, SkeletonUpdate, Vector } from './capture/BodyCapture';
+import { Body, Face, FaceCaptureDimensions, SkeletonUpdate, Torso, Vector } from './capture/BodyCapture';
 
 export const HeadBoneName = 'Head';
 
@@ -96,6 +96,91 @@ const updateFace = (scene: Scene, faceRef: React.MutableRefObject<{ face: Mesh, 
   }
 }
 
+const updateTorso = (
+  scene: Scene,
+  bodyMesh: Mesh | undefined,
+  torsoRef: React.MutableRefObject<DynamicTexture | undefined>,
+  torso: Torso
+) => {
+  if (!bodyMesh || !bodyMesh.material) {
+    return;
+  }
+
+  // Update shirt color in the palette texture
+  if (torso.color) {
+    // Find or clone the palette texture
+    if (!torsoRef.current) {
+      // Find the original color palette texture
+      const material = bodyMesh.material as any;
+      const originalPalette = material.albedoTexture || material.diffuseTexture;
+
+      if (originalPalette && originalPalette.name.includes('ManCasual3Color')) {
+        console.log('Found palette texture:', originalPalette.name);
+
+        // Clone the palette as a dynamic texture
+        const paletteSize = 3; // 3x3 palette
+        torsoRef.current = new DynamicTexture('custom-palette', paletteSize, scene, false);
+
+        // Load the original palette image and copy it
+        const img = new Image();
+        img.onload = () => {
+          const ctx = torsoRef.current!.getContext();
+          ctx.drawImage(img, 0, 0, paletteSize, paletteSize);
+          torsoRef.current!.update(false, true); // No mipmap, immediate
+
+          // Replace the material's texture with our custom palette
+          if (material.albedoTexture) {
+            material.albedoTexture = torsoRef.current;
+          } else if (material.diffuseTexture) {
+            material.diffuseTexture = torsoRef.current;
+          }
+
+          console.log('Cloned palette texture and applied to material');
+        };
+        img.src = originalPalette.url;
+      }
+    }
+
+    // Update the shirt color pixel with sampled color
+    if (torsoRef.current) {
+      const ctx = torsoRef.current.getContext();
+
+      // Palette mapping (3x3 grid) - FULLY DOCUMENTED:
+      // Row 0: (0,0)=Shoes,  (1,0)=Beard,        (2,0)=Unknown
+      // Row 1: (0,1)=Skin,   (1,1)=Hair,         (2,1)=Hair
+      // Row 2: (0,2)=SHIRT,  (1,2)=Pants,        (2,2)=Undershirt/Sleeves
+
+      // Update shirt color
+      if (torso.color) {
+        ctx.fillStyle = `rgb(${torso.color.r}, ${torso.color.g}, ${torso.color.b})`;
+        ctx.fillRect(0, 2, 1, 1); // Shirt
+      }
+
+      // Update skin color (apply to both Skin and Beard to hide beard)
+      if (torso.skinColor) {
+        ctx.fillStyle = `rgb(${torso.skinColor.r}, ${torso.skinColor.g}, ${torso.skinColor.b})`;
+        ctx.fillRect(0, 1, 1, 1); // Skin
+        ctx.fillRect(1, 0, 1, 1); // Beard (make it match skin to hide it)
+      }
+
+      // Update hair color (apply to both hair pixels)
+      if (torso.hairColor) {
+        ctx.fillStyle = `rgb(${torso.hairColor.r}, ${torso.hairColor.g}, ${torso.hairColor.b})`;
+        ctx.fillRect(1, 1, 1, 1); // Hair left
+        ctx.fillRect(2, 1, 1, 1); // Hair right
+      }
+
+      // Update pants color (when legs are visible)
+      if (torso.pantsColor) {
+        ctx.fillStyle = `rgb(${torso.pantsColor.r}, ${torso.pantsColor.g}, ${torso.pantsColor.b})`;
+        ctx.fillRect(1, 2, 1, 1); // Pants
+      }
+
+      torsoRef.current.update(false, true);
+    }
+  }
+};
+
 export const NeckPositionBase: Vector = { x: 0, y: 0, z: 0 };
 export const NeckBoneName = 'Neck';
 const updateSkeleton = (updates: SkeletonUpdate, skeleton: Skeleton, options: GameOptions) => {
@@ -120,6 +205,8 @@ export const Player = (props: {
 }) => {
   const scene = useScene();
   const faceModelRef = useRef<{ face: Mesh, texture: DynamicTexture } | undefined>(undefined);
+  const torsoRef = useRef<DynamicTexture | undefined>(undefined);
+  const bodyMeshRef = useRef<Mesh | undefined>(undefined);
   const headMeshesRef = useRef<AbstractMesh[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -166,7 +253,16 @@ export const Player = (props: {
           name: m.name,
           type: m.getClassName(),
           isMesh: m instanceof Mesh,
-          hasGeometry: (m as any).geometry ? true : false
+          hasGeometry: (m as any).geometry ? true : false,
+          hasSkeleton: !!(m as Mesh).skeleton,
+          material: m.material?.name,
+          materialType: m.material?.getClassName(),
+          subMeshes: (m as Mesh).subMeshes?.length
+        })));
+
+        console.log('All materials in scene:', scene.materials.map(m => ({
+          name: m.name,
+          type: m.getClassName()
         })));
 
         // Attach all loaded meshes to our player root
@@ -191,6 +287,7 @@ export const Player = (props: {
           } else if (mesh.skeleton && mesh instanceof Mesh) {
             // This is the main body mesh with skeleton
             console.log('Main body mesh with skeleton:', mesh.name);
+            bodyMeshRef.current = mesh; // Store for torso color updates
           }
         });
 
@@ -228,6 +325,9 @@ export const Player = (props: {
         const bodyUnsubscribe = props.bodySubscription?.subscribe(body => {
           if (!scene) return;
           props.options.renderFace.current && !!body.face && updateFace(scene, faceModelRef, player, skeleton, body.face, headMeshesRef.current);
+          if (body.torso) {
+            updateTorso(scene, bodyMeshRef.current, torsoRef, body.torso);
+          }
           updateSkeleton(body.skeleton, skeleton, props.options);
         });
 

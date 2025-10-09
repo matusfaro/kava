@@ -14,7 +14,7 @@ export interface GameOptions {
   skeletonScaling: React.MutableRefObject<boolean>;
   processingRate: React.MutableRefObject<number>;
   renderLegs: React.MutableRefObject<boolean>;
-  headTilt: React.MutableRefObject<number>;
+  imageQuality: React.MutableRefObject<number>; // 0-100, JPEG quality percentage
 }
 
 function App() {
@@ -32,7 +32,7 @@ function App() {
   const skeletonScalingRef = useRef<boolean>(debug ? false : true);
   const processingRateRef = useRef<number>(10);
   const renderLegsRef = useRef<boolean>(false);
-  const headTiltRef = useRef<number>(40); // degrees - controls both neck and head tilt
+  const imageQualityRef = useRef<number>(10); // 1-100, JPEG quality percentage (10% default for fast transfers)
   const [options] = useState<GameOptions>({
     skeletonRotations: skeletonRotationsRef,
     skeletonScaling: skeletonScalingRef,
@@ -43,7 +43,7 @@ function App() {
     renderBones: renderBonesRef,
     processingRate: processingRateRef,
     renderLegs: renderLegsRef,
-    headTilt: headTiltRef,
+    imageQuality: imageQualityRef,
   });
   return (
     <>
@@ -111,21 +111,21 @@ function App() {
               />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <label htmlFor="headTilt" style={{ fontSize: '14px' }}>Head Tilt:</label>
+              <label htmlFor="imageQuality" style={{ fontSize: '14px' }}>Quality:</label>
               <input
-                id="headTilt"
+                id="imageQuality"
                 type="range"
-                min="0"
-                max="60"
+                min="1"
+                max="100"
                 step="1"
-                defaultValue={40}
+                defaultValue={10}
                 style={{ width: '100px' }}
                 onChange={e => {
-                  headTiltRef.current = parseInt(e.target.value);
+                  imageQualityRef.current = parseInt(e.target.value);
                   forceUpdate();
                 }}
               />
-              <span style={{ fontSize: '12px', width: '35px' }}>{headTiltRef.current}°</span>
+              <span style={{ fontSize: '12px', width: '35px' }}>{imageQualityRef.current}%</span>
             </div>
           </>
         )}
@@ -140,7 +140,7 @@ function App() {
           ref={webcamCanvasRef}
           style={{
             visibility: previewRef.current ? 'visible' : 'hidden',
-            opacity: 0.5,
+            opacity: 0.9,
             display: 'block'
           }}
         />

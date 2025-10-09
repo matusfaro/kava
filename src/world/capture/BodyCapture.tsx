@@ -5,6 +5,7 @@ import { GameOptions } from '../../App';
 import Subscription from '../../util/subscriptionUtil';
 import { Capturer, VisibilityThreshold } from './capturer';
 import { captureFace } from './face';
+import { captureTorso } from './torso';
 
 export const Qps = 30;
 export const FaceCaptureDimensions = { width: 1280, height: 720 };
@@ -32,6 +33,7 @@ export type SkeletonUpdate = Array<{
 export interface Body {
   skeleton: SkeletonUpdate,
   face?: Face,
+  torso?: Torso,
   webcamCanvasRef?: React.RefObject<HTMLCanvasElement>;
 }
 export interface Vector { x: number, y: number, z: number };
@@ -48,6 +50,37 @@ export interface Face {
     uvs: Array<number>;
     img: string;
   },
+}
+export interface Torso {
+  texture?: {
+    img: string;
+  },
+  color?: {
+    r: number;
+    g: number;
+    b: number;
+  },
+  skinColor?: {
+    r: number;
+    g: number;
+    b: number;
+  },
+  hairColor?: {
+    r: number;
+    g: number;
+    b: number;
+  },
+  pantsColor?: {
+    r: number;
+    g: number;
+    b: number;
+  },
+  landmarks: {
+    shoulderLeft: Vector;
+    shoulderRight: Vector;
+    hipLeft: Vector;
+    hipRight: Vector;
+  }
 }
 
 const convertToLegacyFormat = (result: HolisticLandmarkerResult, image: HTMLVideoElement): Results => {
@@ -68,6 +101,7 @@ const captureToBody = (results: Results, capturer: Capturer, options: GameOption
   let changed = false;
   if (options.renderFace.current) changed = captureFace(results, body, options) || changed;
   if (options.renderBones.current) changed = capturer.capture(results, body.skeleton, options) || changed;
+  changed = captureTorso(results, body, options) || changed; // Always capture torso texture
 
   return changed ? body : undefined;
 }
