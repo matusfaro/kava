@@ -14,6 +14,7 @@ export interface GameOptions {
   skeletonScaling: React.MutableRefObject<boolean>;
   processingRate: React.MutableRefObject<number>;
   renderLegs: React.MutableRefObject<boolean>;
+  headTilt: React.MutableRefObject<number>;
 }
 
 function App() {
@@ -31,6 +32,7 @@ function App() {
   const skeletonScalingRef = useRef<boolean>(debug ? false : true);
   const processingRateRef = useRef<number>(10);
   const renderLegsRef = useRef<boolean>(false);
+  const headTiltRef = useRef<number>(40); // degrees - controls both neck and head tilt
   const [options] = useState<GameOptions>({
     skeletonRotations: skeletonRotationsRef,
     skeletonScaling: skeletonScalingRef,
@@ -41,6 +43,7 @@ function App() {
     renderBones: renderBonesRef,
     processingRate: processingRateRef,
     renderLegs: renderLegsRef,
+    headTilt: headTiltRef,
   });
   return (
     <>
@@ -106,6 +109,23 @@ function App() {
                   processingRateRef.current = Math.max(1, Math.min(60, rate));
                 }}
               />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <label htmlFor="headTilt" style={{ fontSize: '14px' }}>Head Tilt:</label>
+              <input
+                id="headTilt"
+                type="range"
+                min="0"
+                max="60"
+                step="1"
+                defaultValue={40}
+                style={{ width: '100px' }}
+                onChange={e => {
+                  headTiltRef.current = parseInt(e.target.value);
+                  forceUpdate();
+                }}
+              />
+              <span style={{ fontSize: '12px', width: '35px' }}>{headTiltRef.current}°</span>
             </div>
           </>
         )}
