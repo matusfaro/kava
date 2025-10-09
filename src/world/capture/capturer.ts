@@ -185,7 +185,7 @@ const createFingerBones = (
 
       const boneUp = defParent?.[2].normalizeToNew() || Vector3.Up();
       const boneBackward = defParent?.[1].normalizeToNew() || Vector3.Forward();
-      const target = jointTip.subtract(jointDip);
+      const target = jointTip.subtract(jointDip); // Scaling applied via bone length field
 
       return [boneUp, boneBackward, target, undefined];
     },
@@ -203,7 +203,7 @@ const createFingerBones = (
 
       const boneUp = defParent?.[2].normalizeToNew() || Vector3.Up();
       const boneBackward = defParent?.[1].normalizeToNew() || Vector3.Forward();
-      const target = jointDip.subtract(jointPip);
+      const target = jointDip.subtract(jointPip); // Scaling applied via bone length field
 
       return [boneUp, boneBackward, target, undefined];
     },
@@ -214,6 +214,7 @@ const createFingerBones = (
   const bone0: BoneMapping = {
     boneNames: [`${fingerName}${prefix}`],
     getDef: (r, defParent) => {
+      // VERIFICATION: Check if we're using the correct hand for left/right
       const getHandLandmark = isLeft ? r.getLeftHandLandmark.bind(r) : r.getRightHandLandmark.bind(r);
       const wrist = getHandLandmark(0); // Use wrist as anchor
       const jointMcp = getHandLandmark(mcp);
@@ -227,7 +228,78 @@ const createFingerBones = (
       const boneBackward = defParent?.[3] || defParent?.[1].normalizeToNew() || Vector3.Forward();
 
       // Target: from knuckle to first joint
-      const target = jointPip.subtract(jointMcp);
+      const target = jointPip.subtract(jointMcp); // Scaling applied via bone length field
+
+      return [boneUp, boneBackward, target, undefined];
+    },
+    children: [bone1],
+  };
+
+  return [bone0];
+};
+
+// Specialized thumb bone mapping - thumbs bend differently than fingers
+const createThumbBones = (isLeft: boolean): BoneMapping[] => {
+  const prefix = isLeft ? '.L' : '.R';
+
+  // Bone 2: IP to TIP (thumb tip segment)
+  const bone2: BoneMapping = {
+    boneNames: [`FingerThumb02${prefix}`],
+    getDef: (r, defParent) => {
+      const getHandLandmark = isLeft ? r.getLeftHandLandmark.bind(r) : r.getRightHandLandmark.bind(r);
+      const jointMcp = getHandLandmark(2); // MCP for boneUp reference
+      const jointIp = getHandLandmark(3); // IP joint
+      const jointTip = getHandLandmark(4); // Tip
+      if (!jointMcp || !jointIp || !jointTip) return undefined;
+
+      // Bone up: direction along previous segment (MCP to IP)
+      const boneUp = jointIp.subtract(jointMcp).normalize();
+      const boneBackward = defParent?.[1].normalizeToNew() || Vector3.Forward();
+      const target = jointTip.subtract(jointIp);
+
+      return [boneUp, boneBackward, target, undefined];
+    },
+    children: [],
+  };
+
+  // Bone 1: MCP to IP (middle segment)
+  const bone1: BoneMapping = {
+    boneNames: [`FingerThumb01${prefix}`],
+    getDef: (r, defParent) => {
+      const getHandLandmark = isLeft ? r.getLeftHandLandmark.bind(r) : r.getRightHandLandmark.bind(r);
+      const jointCmc = getHandLandmark(1); // CMC for boneUp reference
+      const jointMcp = getHandLandmark(2); // MCP joint
+      const jointIp = getHandLandmark(3); // IP joint
+      if (!jointCmc || !jointMcp || !jointIp) return undefined;
+
+      // Bone up: direction along previous segment (CMC to MCP)
+      const boneUp = jointMcp.subtract(jointCmc).normalize();
+      const boneBackward = defParent?.[1].normalizeToNew() || Vector3.Forward();
+      const target = jointIp.subtract(jointMcp);
+
+      return [boneUp, boneBackward, target, undefined];
+    },
+    children: [bone2],
+  };
+
+  // Bone 0: CMC to MCP (base segment)
+  const bone0: BoneMapping = {
+    boneNames: [`FingerThumb${prefix}`],
+    getDef: (r, defParent) => {
+      const getHandLandmark = isLeft ? r.getLeftHandLandmark.bind(r) : r.getRightHandLandmark.bind(r);
+      const wrist = getHandLandmark(0); // Wrist anchor
+      const jointCmc = getHandLandmark(1); // CMC joint
+      const jointMcp = getHandLandmark(2); // MCP joint
+      if (!wrist || !jointCmc || !jointMcp) return undefined;
+
+      // Bone up: direction from wrist toward CMC (thumb base orientation)
+      const boneUp = jointCmc.subtract(wrist).normalize();
+
+      // Bone backward: inherited from parent hand orientation
+      const boneBackward = defParent?.[3] || defParent?.[1].normalizeToNew() || Vector3.Forward();
+
+      // Target: from CMC to MCP
+      const target = jointMcp.subtract(jointCmc);
 
       return [boneUp, boneBackward, target, undefined];
     },
@@ -238,8 +310,7 @@ const createFingerBones = (
 };
 
 // Create all finger bone mappings
-// Note: Thumb has different joint structure - uses MCP(2), IP(3), TIP(4) instead of MCP/PIP/DIP/TIP
-const boneThumb = (isLeft: boolean) => createFingerBones(isLeft, 'FingerThumb', 2, 3, 3, 4); // Thumb: MCP, IP, IP, TIP
+const boneThumb = (isLeft: boolean) => createThumbBones(isLeft);
 const boneIndex = (isLeft: boolean) => createFingerBones(isLeft, 'FingerIndex', 5, 6, 7, 8);
 const boneMiddle = (isLeft: boolean) => createFingerBones(isLeft, 'FingerMiddle', 9, 10, 11, 12);
 const boneRing = (isLeft: boolean) => createFingerBones(isLeft, 'FingerRing', 13, 14, 15, 16);
@@ -248,11 +319,17 @@ const bonePinky = (isLeft: boolean) => createFingerBones(isLeft, 'FingerLittle',
 const boneHands: BoneMapping[] = [true, false].map(isLeft => ({
   boneNames: [isLeft ? 'Hand.L' : 'Hand.R'],
   getDef: (r, defParent) => {
+    const getHandLandmark = isLeft ? r.getLeftHandLandmark.bind(r) : r.getRightHandLandmark.bind(r);
     const elbow = r.getPoseLandmark(isLeft ? 13 : 14);
     const wrist = r.getPoseLandmark(isLeft ? 15 : 16);
-    const fingerIndex = r.getPoseLandmark(isLeft ? 19 : 20);
-    const fingerLittle = r.getPoseLandmark(isLeft ? 17 : 18);
-    if (!elbow || !wrist || !fingerIndex || !fingerLittle) return undefined;
+
+    // Use detailed hand landmarks for better rotation tracking
+    const handWrist = getHandLandmark(0); // Hand landmark wrist
+    const fingerIndexMcp = getHandLandmark(5); // Index knuckle
+    const fingerMiddleMcp = getHandLandmark(9); // Middle knuckle
+    const fingerPinkyMcp = getHandLandmark(17); // Pinky knuckle
+
+    if (!elbow || !wrist || !handWrist || !fingerIndexMcp || !fingerPinkyMcp || !fingerMiddleMcp) return undefined;
 
     // Bone up: direction from elbow to wrist (along forearm)
     const boneUp = wrist.subtract(elbow).normalize();
@@ -260,18 +337,17 @@ const boneHands: BoneMapping[] = [true, false].map(isLeft => ({
     // Bone backward: inherited from parent (forearm orientation)
     const boneBackward = defParent?.[1].normalizeToNew() || Vector3.Up();
 
-    // Target: center of hand (between index and pinky)
-    const handCenter = Vector3.Center(fingerIndex, fingerLittle);
-    const target = handCenter.subtract(wrist);
+    // Target: from pose wrist to middle finger knuckle (hand direction)
+    const target = fingerMiddleMcp.subtract(handWrist);
 
-    // Calculate palm orientation
-    // Fingers vector points from index to pinky (left hand) or pinky to index (right hand)
-    const fingers = (isLeft
-      ? fingerLittle.subtract(fingerIndex)
-      : fingerIndex.subtract(fingerLittle)).normalize();
+    // Calculate palm orientation using knuckle line
+    // Vector across knuckles from pinky to index
+    const knuckleLine = (isLeft
+      ? fingerIndexMcp.subtract(fingerPinkyMcp)
+      : fingerPinkyMcp.subtract(fingerIndexMcp)).normalize();
 
-    // Cross product gives palm normal, negated for front-facing camera correction
-    const targetBackward = Vector3.Cross(target.normalizeToNew(), fingers).negate();
+    // Cross product gives palm normal for proper wrist rotation
+    const targetBackward = Vector3.Cross(target.normalizeToNew(), knuckleLine).negate();
 
     return [boneUp, boneBackward, target, targetBackward];
   },
@@ -378,6 +454,7 @@ const boneNeck: BoneMapping = {
     const shoulderRight = r.getPoseLandmark(12);
     const eyeLeft = r.getFaceLandmark(FaceEyeLeft);
     const eyeRight = r.getFaceLandmark(FaceEyeRight);
+    const nose = r.getPoseLandmark(0); // Use nose from pose for better depth alignment
     if (!shoulderLeft || !shoulderRight || !eyeLeft || !eyeRight) return undefined;
 
     // Bone up: inherited from spine (points upward along torso)
@@ -388,9 +465,25 @@ const boneNeck: BoneMapping = {
     const boneBackward = Vector3.Cross(boneUp, shoulder).normalize();
 
     // Target: from shoulder center to eye center (neck direction)
+    // Blend face and pose Z coordinates to balance forward/backward lean
     const eyeCenter = Vector3.Center(eyeRight, eyeLeft);
     const shoulderCenter = Vector3.Center(shoulderLeft, shoulderRight);
-    const target = eyeCenter.subtract(shoulderCenter);
+
+    let target = eyeCenter.subtract(shoulderCenter);
+    if (nose) {
+      // Blend face mesh Z (60%) with pose nose Z (40%) for natural neck angle
+      const faceZ = target.z;
+      const poseZ = nose.z - shoulderCenter.z;
+      target.z = faceZ * 0.6 + poseZ * 0.4;
+    }
+
+    // Negate Z for correct forward/backward head movement
+    target.z = -target.z;
+
+    // Add default forward tilt
+    // Negative Z = forward, so add positive offset to tilt forward
+    const forwardTiltOffset = target.length() * Math.tan(35 * Math.PI / 180);
+    target.z += forwardTiltOffset;
 
     return [boneUp, boneBackward, target, undefined];
   },
@@ -589,8 +682,6 @@ export class Capturer {
         0.0, 0.0, 0.0, 1.0
       ).transpose().getRotationMatrix();
 
-      const boneLength = target.length() * ScaleMultiplier;
-
       const numBones = bone.boneNames.length;
       const rotation = Quaternion.FromRotationMatrix(rotMatrix);
 
@@ -610,7 +701,7 @@ export class Capturer {
       bone.boneNames.forEach(boneName => {
         updates.push({
           n: boneName,
-          // s: boneLengthScaled, TODO fixup and re-enable scaling
+          // s: boneLengthScaled, // Disabled - causes positioning issues with arm chain
           q: rotationScaled,
         });
 
