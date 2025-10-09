@@ -31,8 +31,8 @@ const Game = (props: {
   const cameraCallback = useCallback(setCamera, [setCamera]);
   const [controller, setController] = useState<CharacterController>();
   const controllerCallback = useCallback(setController, [setController]);
-  // const [ground, setGround] = useState<Mesh>();
-  const groundCallback = useCallback(() => {}, []);
+  const [ground, setGround] = useState<Mesh>();
+  const groundCallback = useCallback(setGround, [setGround]);
   const [video, setVideo] = useState<HTMLVideoElement | null>(null);
   const videoCallback = useCallback(setVideo, [setVideo]);
 
@@ -40,7 +40,17 @@ const Game = (props: {
     <>
       {props.enableVideo && (<video autoPlay muted ref={videoCallback} style={{ display: 'none' }} />)}
       {!!controller && (<Joystick controller={controller} />)}
-      <Engine antialias adaptToDeviceRatio canvasId='game'>
+      <Engine
+        canvasId='game'
+        antialias={true}
+        adaptToDeviceRatio={false}
+        engineOptions={{
+          preserveDrawingBuffer: false,
+          stencil: false,
+          powerPreference: 'low-power',
+          doNotHandleContextLost: true,
+        }}
+      >
         <Scene>
           <Suspense fallback={false}>
             <Provider store={store}>
