@@ -576,7 +576,7 @@ export const neutralPoses: { [boneName: string]: { x: number, y: number, z: numb
     'Hand.L': {x: 0, y: 0, z: 0, w: 1},
     'Hand.R': {x: 0, y: 0, z: 0, w: 1},
 
-    // Finger neutral poses - slightly curled/relaxed
+    // Finger neutral poses - slightly curled/relaxed (negative = curl inward)
     // Thumb (straight/extended by default to match MediaPipe rest position)
     'FingerThumb.L': {x: 0, y: 0, z: 0, w: 1},  // Identity - no rotation
     'FingerThumb.R': {x: 0, y: 0, z: 0, w: 1},
@@ -585,37 +585,37 @@ export const neutralPoses: { [boneName: string]: { x: number, y: number, z: numb
     'FingerThumb02.L': {x: 0, y: 0, z: 0, w: 1},
     'FingerThumb02.R': {x: 0, y: 0, z: 0, w: 1},
 
-    // Index finger (moderately curled)
-    'FingerIndex.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 6)), // ~30°
-    'FingerIndex.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 6)),
-    'FingerIndex01.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 5)), // ~36°
-    'FingerIndex01.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 5)),
-    'FingerIndex02.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 6)), // ~30°
-    'FingerIndex02.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 6)),
+    // Index finger (moderately curled inward)
+    'FingerIndex.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 6)), // ~-30°
+    'FingerIndex.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 6)),
+    'FingerIndex01.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 5)), // ~-36°
+    'FingerIndex01.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 5)),
+    'FingerIndex02.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 6)), // ~-30°
+    'FingerIndex02.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 6)),
 
-    // Middle finger (moderately curled)
-    'FingerMiddle.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 6)), // ~30°
-    'FingerMiddle.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 6)),
-    'FingerMiddle01.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 5)), // ~36°
-    'FingerMiddle01.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 5)),
-    'FingerMiddle02.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 6)), // ~30°
-    'FingerMiddle02.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 6)),
+    // Middle finger (moderately curled inward)
+    'FingerMiddle.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 6)), // ~-30°
+    'FingerMiddle.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 6)),
+    'FingerMiddle01.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 5)), // ~-36°
+    'FingerMiddle01.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 5)),
+    'FingerMiddle02.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 6)), // ~-30°
+    'FingerMiddle02.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 6)),
 
-    // Ring finger (moderately curled)
-    'FingerRing.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 6)), // ~30°
-    'FingerRing.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 6)),
-    'FingerRing01.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 5)), // ~36°
-    'FingerRing01.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 5)),
-    'FingerRing02.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 6)), // ~30°
-    'FingerRing02.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 6)),
+    // Ring finger (moderately curled inward)
+    'FingerRing.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 6)), // ~-30°
+    'FingerRing.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 6)),
+    'FingerRing01.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 5)), // ~-36°
+    'FingerRing01.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 5)),
+    'FingerRing02.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 6)), // ~-30°
+    'FingerRing02.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 6)),
 
-    // Pinky (slightly more curled)
-    'FingerLittle.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 5)), // ~36°
-    'FingerLittle.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 5)),
-    'FingerLittle01.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 4.5)), // ~40°
-    'FingerLittle01.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 4.5)),
-    'FingerLittle02.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 5)), // ~36°
-    'FingerLittle02.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 5)),
+    // Pinky (slightly more curled inward)
+    'FingerLittle.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 5)), // ~-36°
+    'FingerLittle.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 5)),
+    'FingerLittle01.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 4.5)), // ~-40°
+    'FingerLittle01.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 4.5)),
+    'FingerLittle02.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 5)), // ~-36°
+    'FingerLittle02.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -Math.PI / 5)),
 };
 
 // Function to update neutral pose for a specific bone
