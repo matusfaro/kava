@@ -447,22 +447,6 @@ const BodyCapture = (props: {
             return;
           }
 
-          // Log raw results on first detection or every 30 frames
-          if (frameCount <= 5 || frameCount % 30 === 0) {
-            console.log(`Frame ${frameCount} - Raw results:`, results);
-            console.log('MediaPipe detection status:', {
-              frameCount,
-              hasPoseLandmarks: !!results.poseLandmarks?.length,
-              hasFaceLandmarks: !!results.faceLandmarks?.length,
-              hasLeftHand: !!results.leftHandLandmarks?.length,
-              hasRightHand: !!results.rightHandLandmarks?.length,
-              videoReadyState: props.videoElement.readyState,
-              videoWidth: props.videoElement.videoWidth,
-              videoHeight: props.videoElement.videoHeight,
-              timestamp: timestampMs
-            });
-          }
-
           // Log first detection
           if (frameCount === 1 && results.poseLandmarks?.length) {
             console.log('First pose detected! Starting body tracking...');

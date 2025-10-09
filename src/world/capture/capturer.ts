@@ -345,6 +345,17 @@ const boneLowerArms: BoneMapping[] = [true, false].map(isLeft => ({
         const wrist = r.getPoseLandmark(isLeft ? 15 : 16);
         if (!shoulder || !elbow || !wrist) return undefined;
 
+        // Check if hand landmarks are visible - if not, return undefined to trigger neutral pose
+        const getHandLandmark = isLeft ? r.getLeftHandLandmark.bind(r) : r.getRightHandLandmark.bind(r);
+        const handWrist = getHandLandmark(0);
+        const indexMcp = getHandLandmark(5);
+        const pinkyMcp = getHandLandmark(17);
+
+        // If hand is not visible, return undefined to allow interpolation to neutral
+        if (!handWrist || !indexMcp || !pinkyMcp) {
+            return undefined;
+        }
+
         // Bone up: points along upper arm from shoulder to elbow
         const boneUp = elbow.subtract(shoulder).normalize();
 
@@ -560,12 +571,12 @@ export const neutralPoses: { [boneName: string]: { x: number, y: number, z: numb
     'UpperArm.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -50 * Math.PI / 180)),
     // LowerArm: Forward/backward rotation (Z-axis rotation)
     // Default: 0° (straight/natural continuation of upper arm)
-    'LowerArm.L': toQuatObj(Quaternion.RotationAxis(Vector3.Forward(), 0)),
-    'LowerArm.R': toQuatObj(Quaternion.RotationAxis(Vector3.Forward(), 0)),
+    'LowerArm.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -15 * Math.PI / 180).multiply(Quaternion.RotationAxis(Vector3.Up(), 0 * Math.PI / 180)).multiply(Quaternion.RotationAxis(Vector3.Forward(), 0 * Math.PI / 180))),
+    'LowerArm.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), -15 * Math.PI / 180).multiply(Quaternion.RotationAxis(Vector3.Up(), 0 * Math.PI / 180)).multiply(Quaternion.RotationAxis(Vector3.Forward(), 0 * Math.PI / 180))),
     // Hands rotated inward when at rest (fingers pointing down, palm facing body)
     // 90° rotation around X-axis
-    'Hand.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 2)),
-    'Hand.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), Math.PI / 2)),
+    'Hand.L': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), 0 * Math.PI / 180).multiply(Quaternion.RotationAxis(Vector3.Up(), 180 * Math.PI / 180)).multiply(Quaternion.RotationAxis(Vector3.Forward(), 0 * Math.PI / 180))),
+    'Hand.R': toQuatObj(Quaternion.RotationAxis(Vector3.Right(), 0 * Math.PI / 180).multiply(Quaternion.RotationAxis(Vector3.Up(), 180 * Math.PI / 180)).multiply(Quaternion.RotationAxis(Vector3.Forward(), 0 * Math.PI / 180))),
 
     // Finger neutral poses - slightly curled/relaxed
     // Thumb (straight/extended by default to match MediaPipe rest position)
