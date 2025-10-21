@@ -33,7 +33,6 @@ interface Results {
     image: HTMLVideoElement | HTMLCanvasElement;
 }
 
-const ScaleMultiplier = 0.2;
 export const VisibilityThreshold = -1;
 // Preview properties: https://benwinding.github.io/kalmanjs-examples/examples/demo2-vue.html
 const KalmanProps = {
