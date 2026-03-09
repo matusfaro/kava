@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/kava/static/css/main.9aa44d45.css",
+    "main.js": "/kava/static/js/main.aa9675c4.js",
+    "index.html": "/kava/index.html",
+    "main.9aa44d45.css.map": "/kava/static/css/main.9aa44d45.css.map",
+    "main.aa9675c4.js.map": "/kava/static/js/main.aa9675c4.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.9aa44d45.css",
+    "static/js/main.aa9675c4.js"
+  ]
+}

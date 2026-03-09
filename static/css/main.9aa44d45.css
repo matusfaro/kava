@@ -1,0 +1,2 @@
+body,html{margin:0;padding:0}#game{background-color:skyblue;height:100%;position:absolute!important;width:100%}#joystick{bottom:75px;height:0;left:50vw;position:fixed;width:0;z-index:1}@media only screen and (min-device-width:768px){#joystick{display:none}}
+/*# sourceMappingURL=main.9aa44d45.css.map*/

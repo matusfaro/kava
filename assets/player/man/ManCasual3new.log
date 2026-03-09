@@ -1,0 +1,93 @@
+Exporter version: 2.93.4, Blender version: 3.0.0
+========= Conversion from Blender to Babylon.js =========
+	Scene settings used :
+		Inline textures     :  false
+		Material Type       :  PBR
+		Positions Precision :  4
+		Normals Precision   :  3
+		UVs Precision       :  3
+		Vert Color Precision:  3
+		Mat Weight Precision:  2
+		Keep Z-up r-handed  :  no
+		Texture directory   :  /Users/matus/dev/kava3/public/assets/player/man/
+	Python World class constructor completed
+	processing begun of skeleton:  ManCasual3Armature, id:  0
+		processing begun of bone:  Hips, index:  0
+		processing begun of bone:  Spine, index:  1
+		processing begun of bone:  Chest, index:  2
+		processing begun of bone:  UpperChest, index:  3
+		processing begun of bone:  Shoulder.L, index:  4
+		processing begun of bone:  UpperArm.L, index:  5
+		processing begun of bone:  LowerArm.L, index:  6
+		processing begun of bone:  Hand.L, index:  7
+		processing begun of bone:  FingerLittle.L, index:  8
+		processing begun of bone:  FingerLittle01.L, index:  9
+		processing begun of bone:  FingerLittle02.L, index:  10
+		processing begun of bone:  FingerRing.L, index:  11
+		processing begun of bone:  FingerRing01.L, index:  12
+		processing begun of bone:  FingerRing02.L, index:  13
+		processing begun of bone:  FingerMiddle.L, index:  14
+		processing begun of bone:  FingerMiddle01.L, index:  15
+		processing begun of bone:  FingerMiddle02.L, index:  16
+		processing begun of bone:  FingerIndex.L, index:  17
+		processing begun of bone:  FingerIndex01.L, index:  18
+		processing begun of bone:  FingerIndex02.L, index:  19
+		processing begun of bone:  FingerThumb.L, index:  20
+		processing begun of bone:  FingerThumb01.L, index:  21
+		processing begun of bone:  FingerThumb02.L, index:  22
+		processing begun of bone:  Neck, index:  23
+		processing begun of bone:  Head, index:  24
+		processing begun of bone:  Shoulder.R, index:  25
+		processing begun of bone:  UpperArm.R, index:  26
+		processing begun of bone:  LowerArm.R, index:  27
+		processing begun of bone:  Hand.R, index:  28
+		processing begun of bone:  FingerLittle.R, index:  29
+		processing begun of bone:  FingerLittle01.R, index:  30
+		processing begun of bone:  FingerLittle02.R, index:  31
+		processing begun of bone:  FingerRing.R, index:  32
+		processing begun of bone:  FingerRing01.R, index:  33
+		processing begun of bone:  FingerRing02.R, index:  34
+		processing begun of bone:  FingerMiddle.R, index:  35
+		processing begun of bone:  FingerMiddle01.R, index:  36
+		processing begun of bone:  FingerMiddle02.R, index:  37
+		processing begun of bone:  FingerIndex.R, index:  38
+		processing begun of bone:  FingerIndex01.R, index:  39
+		processing begun of bone:  FingerIndex02.R, index:  40
+		processing begun of bone:  FingerThumb.R, index:  41
+		processing begun of bone:  FingerThumb01.R, index:  42
+		processing begun of bone:  FingerThumb02.R, index:  43
+		processing begun of bone:  UpperLeg.L, index:  44
+		processing begun of bone:  LowerLeg.L, index:  45
+		processing begun of bone:  Foot.L, index:  46
+		processing begun of bone:  Toes.L, index:  47
+		processing begun of bone:  UpperLeg.R, index:  48
+		processing begun of bone:  LowerLeg.R, index:  49
+		processing begun of bone:  Foot.R, index:  50
+		processing begun of bone:  Toes.R, index:  51
+	processing begun of camera (UniversalCamera):  Camera
+	processing begun of mesh:  ManCasual3
+		processing begun of material:  ManCasual3Material
+			processing texture ManCasual3Color
+				texture type:  diffuseTexture, mapped using: "UVMap"
+		Custom split normals with tangents being used
+		num positions      :  7573
+		num normals        :  7573
+		num tangents       :  30292
+		num uvs            :  15146
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  2554
+		Skeleton stats:  
+			Total Influencers:  18131
+			Avg # of influencers per vertex:  2.3942
+			Highest # of influencers observed:  6, num vertices with this:  118
+			exported as 6 influencers
+			num skeletonWeights and skeletonIndices:  60584
+	processing begun of light (DIRECTIONAL):  Light
+	processing begun of light (DIRECTIONAL):  Light.001
+	processing begun of light (DIRECTIONAL):  Light.002
+========= Writing of JSON file started =========
+	writing mesh:  ManCasual3
+========= Writing of JSON file completed =========
+========= end of processing =========
+elapsed time:  0 min, 1.1213 secs
